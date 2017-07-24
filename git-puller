@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+# A script to bulk refresh all your git repos
+# Give it a list of directories under which to search for get repos
+# If no arguments are given, searches under your homedir
+
+pathlist="$*"
+if [[ ! $pathlist ]]; then
+  pathlist=$HOME
+fi
+
+for path in $pathlist; do
+  for gitdir in $(find $path -type d -name .git); do
+    repo=$(dirname $gitdir)
+    pushd $repo > /dev/null
+    git pull
+    popd > /dev/null
+  done
+done
