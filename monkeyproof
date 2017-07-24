@@ -1,0 +1,127 @@
+#!/bin/bash
+# Quick and dirty script to configure monkeysphere and pam-ssh-agent-auth
+# It *should* be idempotent...
+
+# Set some defaults
+ID_CERTIFIERS="00CC54C6A0C601691AF4931FFB73E21AF1163937 2EF5C2AE20512C63A583F83DD3D1096C79937053"
+PRESEED_USER_ID="Andrew Gallagher <andrewg@andrewg.com>"
+PRESEED_USER_ACCOUNT="andrewg"
+
+if [[ -f /etc/monkeyproof ]]; then
+	. /etc/monkeyproof
+fi
+if [[ -f ~/.monkeyproof ]]; then
+	. ~/.monkeyproof
+fi
+
+# Install and configure monkeysphere
+
+apt-get update
+apt-get -y install monkeysphere dirmngr
+
+export MONKEYSPHERE_PROMPT=false
+
+cat > /etc/monkeysphere/monkeysphere-authentication.conf <<EOF
+# Created automatically by monkeyproof script
+# This config prevents privilege escalation when using pam-ssh-agent-auth
+
+# DO NOT allow users to specify their own PGP IDs.
+AUTHORIZED_USER_IDS="/etc/monkeysphere/authorized_user_ids/%u"
+
+# DO NOT allow users to supplement monkeysphere's authorized_keys.
+# But allow sysadmins to do so for users who don't use PGP
+# Use the standard-ish pam_ssh_agent_auth directory for this. #POLS
+RAW_AUTHORIZED_KEYS='/etc/security/authorized_keys/%u'
+EOF
+
+if [ ! -d /etc/security/authorized_keys ]; then
+	mkdir /etc/security/authorized_keys
+fi
+cat > /etc/security/authorized_keys/README <<EOF
+# This directory contains authorized keys for use by both ssh and sudo.
+# These are NOT used directly, but are polled regularly by monkeysphere.
+# To force an update ahead of schedule, run the following command as root:
+#
+#	monkeysphere-authentication update-users
+EOF
+
+for id in $ID_CERTIFIERS; do
+	monkeysphere-authentication add-id-certifier $id
+done
+
+# Add andrewg@andrewg.com as ordinary user also
+if [ ! -d /etc/monkeysphere/authorized_user_ids ]; then
+	mkdir /etc/monkeysphere/authorized_user_ids
+fi
+echo "$PRESEED_USER_ID" > /etc/monkeysphere/authorized_user_ids/$PRESEED_USER_ACCOUNT
+monkeysphere-authentication update-users
+
+# Make sure updates run in regularly
+cat > /etc/cron.hourly/monkeysphere <<EOF
+# Created automatically by monkeyproof script
+monkeysphere-authentication update-users > /dev/null
+EOF
+
+# Now configure sshd to read the monkeysphere keys
+
+if egrep '^\s*AuthorizedKeysFile\s+%h/.ssh/authorized_keys\s+/var/lib/monkeysphere/authorized_keys/%u\s*$' /etc/ssh/sshd_config; then
+	# If we find our own handiwork, do nothing; this is for idempotency
+	echo "SSHD already configured for monkeysphere"
+elif egrep '^\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
+	# If there exists a working AuthorizedKeysFile line, comment it out and insert above it
+	perl -pi.bak -e 'if(!$done && s!^(\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n#$1!) {$done=1;}' /etc/ssh/sshd_config
+	service ssh restart
+elif egrep '^\s*#+\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
+	# If there exists only a commented out AuthorizedKeysFile, insert above it
+	perl -pi.bak -e 'if(!$done && s!^(\s*#+\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n$1!) {$done=1;}' /etc/ssh/sshd_config
+	service ssh restart
+else
+	# Otherwise append with an explanation
+	cat >> /etc/ssh/sshd_config <<EOF
+# Added automatically by monkeyproof script
+# Allow logins with both user-supplied keys and monkeysphere's curated keys
+AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u
+EOF
+	service ssh restart
+fi
+
+
+# Install and configure libpam-ssh-agent-auth
+
+if apt-get -y install libpam-ssh-agent-auth; then
+	echo "Installed libpam-ssh-agent-auth from distribution"
+else
+	cat > /etc/apt/sources.list.d/andrewg.list <<EOF
+deb http://andrewg.com/debian andrewg main
+EOF
+	apt-key --keyring /etc/apt/trusted.gpg.d/andrewg-codesign.gpg adv \
+		--keyserver pool.sks-keyservers.net --recv-key DC517DF489A99F534BBB07BC88E7A27092F9ACDC
+	apt-get update
+	if apt-get -y install pam-ssh-agent-auth; then
+		echo "Installed pam-ssh-agent-auth from andrewg.com"
+	else
+		echo "FATAL: Could not install (lib)pam-ssh-agent-auth"
+		exit 1
+	fi
+fi
+
+cat > /usr/share/pam-configs/pam-ssh-agent-auth <<EOF
+Name: SSH agent authentication
+Default: yes
+Priority: 258
+Auth-Type: Primary
+Auth:
+	[success=end default=ignore]	pam_ssh_agent_auth.so file=/var/lib/monkeysphere/authorized_keys/%u
+Auth-Initial:
+	[success=end default=ignore]	pam_ssh_agent_auth.so file=/var/lib/monkeysphere/authorized_keys/%u
+EOF
+
+cat > /etc/sudoers.d/pam-ssh-agent-auth <<EOF
+# Added automatically by monkeyproof script
+# Older versions of sudo need this to access user ssh-agent
+Defaults    env_keep += "SSH_AUTH_SOCK"
+EOF
+
+# Does --force actually do anything?
+pam-auth-update --force
+

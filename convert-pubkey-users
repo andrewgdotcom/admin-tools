@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# A script to bulk modify users to have no passwds, ready for pubkey-only auth.
+# ssh will by default not allow network logins with empty passwords, but this 
+# is not globally true. We therefore need to make sure that having no password
+# will not open security holes.
+
+stamp=$(date +%s)
+# make sure we can't log in on console with empty passwords!
+for file in /etc/pam.d/password-auth-ac /etc/pam.d/system-auth-ac /usr/share/pam-configs/unix; do
+ if grep -s nullok $file; then
+  perl -pi.bak$stamp -e 's/\s+nullok(_secure)?\s+/ /' /etc/pam.d/$file
+ fi
+done
+
+pam-auth-update
+
+for user in $*; do
+  /usr/sbin/usermod -p "" $user
+  /usr/bin/chage -d 0 $user
+done
+

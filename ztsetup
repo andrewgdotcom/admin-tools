@@ -1,0 +1,45 @@
+#!/bin/bash
+# 
+# A QAD script to install zerotier and automatically join a list of networks
+# We also optionally update the local /etc/hosts file
+
+# NETWORKS is a whitespace separated list of zerotier networks to join
+NETWORKS="8056c2e21c00001"
+
+if [[ -f /etc/ztsetup ]]; then
+	. /etc/ztsetup
+fi
+if [[ -f ~/.ztsetup ]]; then
+	. ~/.ztsetup
+fi
+
+# Attempt to autodetect our distribution. This should work for debian and ubuntu
+# IFF the main distribution is configured sensibly
+DIST=$(grep ^deb.*main /etc/apt/sources.list|awk '{print $3}'|grep -v '-'|head -1)
+
+if zerotier-cli info 2>/dev/null; then
+	echo "Already installed"
+else
+	apt-key --keyring /etc/apt/trusted.gpg.d/zerotier.gpg adv --keyserver pool.sks-keyservers.net --recv-key 1657198823E52A61
+	cat > /etc/apt/sources.list.d/zerotier.list <<EOF
+deb http://download.zerotier.com/debian/$DIST $DIST main
+EOF
+	apt-get update && apt-get -y install zerotier-one
+	while ! zerotier-cli info; do
+		# Usually takes a moment for zerotier to become active
+		sleep 1
+	done
+fi
+
+# auto join the standard networks
+for network in $NETWORKS; do
+  zerotier-cli join $network
+done
+
+# and add some useful name resolutions
+if [[ -f /etc/zthosts ]]; then
+	cat /etc/zthosts >> /etc/hosts
+fi
+if [[ -f ~/.zthosts ]]; then
+	cat ~/.zthosts >> /etc/hosts 
+fi

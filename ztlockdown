@@ -1,0 +1,84 @@
+#!/bin/bash
+#
+# A QAD script that attempts to intelligently allow access over a (fresh)
+# zerotier network and disables general (but not host-specific) ssh access
+# from the internet.
+# Note the following caveats:
+#
+# - It assumes ufw.
+# - You should have a host-specific ssh rule in place in case it goes wrong
+
+# NETWORKS is a *newline-separated* list of 6PLANE networks that are 
+# considered "secure". Only the first working one is actually used.
+
+NETWORKS="fcab:abab:ab zerotier mgmt
+fcfc:fcfc:fc zerotier general"
+
+if [[ -f /etc/ztlockdown ]]; then
+	. /etc/ztlockdown
+fi
+if [[ -f ~/.ztlockdown ]]; then
+	. ~/.ztlockdown
+fi
+
+IFS_SAVE="$IFS"
+IFS="
+"
+for network in $NETWORKS; do
+	network_prefix=${network%% *}
+	if ifconfig | grep -q "${network_prefix}..:"; then
+		SECURE_NETWORK="${network_prefix}00::/40"
+		SECURE_NET_NAME=${network#* }
+		break
+	fi
+done
+IFS=$IFS_SAVE
+
+if [ ! $SECURE_NETWORK ]; then
+	echo "Host is not a member of any secure networks!"
+	exit 1
+fi
+
+if [ ! -x /usr/sbin/ufw ]; then
+	apt-get update && apt-get install ufw || exit 2
+fi
+
+IFS_SAVE="$IFS"
+IFS="
+"
+for i in $(ufw status | grep 'ALLOW\s*Anywhere' | grep -v '(v6)'); do
+	IFS="$IFS_SAVE"
+	UFW_TO=${i%ALLOW*}
+	j=${i#*ALLOW}
+	UFW_FROM=${j%\#*}
+	UFW_COMMENT=${j#*\#}
+	case "$UFW_TO" in
+	22 )
+		echo -n
+		;;
+	* on * )
+		ufw allow from "$SECURE_NETWORK" comment "($SECURE_NET_NAME) ${UFW_COMMENT}"
+		;;
+	* ) 
+		ufw allow from "$SECURE_NETWORK" to "$UFW_TO" comment "($SECURE_NET_NAME) ${UFW_COMMENT}"
+		;;
+	esac
+done
+IFS="$IFS_SAVE"
+
+# Now add VPN ssh access
+ufw allow from "$SECURE_NETWORK" to any app "OpenSSH" comment "($SECURE_NET_NAME)"
+if [ -d /etc/sshguard ]; then
+	echo "$SECURE_NETWORK" >> /etc/sshguard/whitelist
+fi
+
+# And try to delete all instances of general ssh access
+ufw delete allow OpenSSH
+ufw delete allow 22
+ufw delete allow 22/tcp
+
+echo "Current firewall status - check for sanity"
+
+iptables -L -v
+iptables -L -v -t nat
+ufw status

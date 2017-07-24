@@ -1,0 +1,62 @@
+#!/bin/bash
+#
+# A script to bulk create users using pubkey-only auth. 
+#
+# If a file ./pubkeys/$user exists, use it to populate the authorized_keys.
+# If /etc/security/authorized_keys exists, put the pubkey in here (and if
+# monkeysphere is installed, refresh its live config). Otherwise, put it in
+# ~/.ssh/authorized_keys
+
+WHEEL=wheel
+DEBIAN=
+if [ -d /etc/apt ]; then
+	# Debian admin group is sudo, not wheel
+	WHEEL=sudo
+	DEBIAN=true
+fi
+
+if [ ! -f /etc/skel/.ssh/authorized_keys ]; then
+	if [ ! -d /etc/skel/.ssh ]; then
+		mkdir /etc/skel/.ssh
+	fi
+	touch /etc/skel/.ssh/authorized_keys
+	chmod -R og= /etc/skel/.ssh
+fi
+
+_PSAA=""
+if [ -d /etc/security/authorized_keys ]; then
+	_PSAA=1
+	# Make sure we can't log in on console with empty passwords!
+	# *-ac are Redhat files; /var/lib/pam/* are Debian
+	for file in /etc/pam.d/password-auth-ac /etc/pam.d/system-auth-ac /usr/share/pam-configs/unix; do
+		if grep -s nullok $file; then
+			# Debian uses nullok_secure, but it's still not good enough
+			perl -pi.bak -e 's/\s+nullok(_secure)?\s+/ /' $file
+		fi
+	done
+	if [ -n $DEBIAN ]; then 
+		# Regenerate pam config from updated template
+		pam-auth-update --force
+	fi
+fi
+
+for user in $*; do
+	/usr/sbin/adduser --disabled-password --gecos "" $user
+	if [ -n $_PSAA ]; then
+		if [[ -f pubkeys/$user ]]; then
+			cat pubkeys/$user >> /etc/security/authorized_keys/$user
+			# If we are using monkeysphere, we need to update the live config
+			if [ -x /usr/sbin/monkeysphere-authentication ]; then
+				monkeysphere-authentication update-users
+			fi
+		fi
+		# Now empty the user's password and expire it
+		for user in $*; do
+			/usr/sbin/usermod -p "" $user
+			/usr/bin/chage -d 0 $user
+		done
+	else
+		cat pubkeys/$user >> /home/$user/.ssh/authorized_keys
+	fi
+	/usr/sbin/usermod -aG $WHEEL $user
+done
