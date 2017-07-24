@@ -42,7 +42,7 @@ fi
 #### Let's go to work ####
 ##########################
 
-if [[ $(sudo bash -c 'echo $SSH_AUTH_SOCK') ]]; then
+if [[ ! $(sudo bash -c 'echo $SSH_AUTH_SOCK') ]]; then
 	echo "sudo is not passing through \$SSH_AUTH_SOCK. This script will not work until you fix it."
 	echo "Try setting \'Defaults env_keep += \"SSH_AUTH_SOCK\"\' under /etc/sudoers.d"
 	echo "Or did you forget to run monkeyproof?"
