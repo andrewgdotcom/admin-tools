@@ -54,12 +54,12 @@ if [ ! -d /etc/monkeysphere/authorized_user_ids ]; then
 	mkdir /etc/monkeysphere/authorized_user_ids
 fi
 echo "$PRESEED_USER_ID" > /etc/monkeysphere/authorized_user_ids/$PRESEED_USER_ACCOUNT
-monkeysphere-authentication update-users
+/usr/sbin/monkeysphere-authentication update-users
 
 # Make sure updates run in regularly
 cat > /etc/cron.hourly/monkeysphere <<EOF
 # Created automatically by monkeyproof script
-monkeysphere-authentication update-users > /dev/null
+/usr/sbin/monkeysphere-authentication update-users > /dev/null
 EOF
 
 # Now configure sshd to read the monkeysphere keys
