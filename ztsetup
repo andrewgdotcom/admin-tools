@@ -4,7 +4,7 @@
 # We also optionally update the local /etc/hosts file
 
 # NETWORKS is a whitespace separated list of zerotier networks to join
-NETWORKS="8056c2e21c00001"
+NETWORKS="8056c2e21c000001"
 
 if [[ -f /etc/ztsetup ]]; then
 	. /etc/ztsetup
