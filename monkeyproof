@@ -122,6 +122,4 @@ cat > /etc/sudoers.d/pam-ssh-agent-auth <<EOF
 Defaults    env_keep += "SSH_AUTH_SOCK"
 EOF
 
-# Does --force actually do anything?
-pam-auth-update --force
-
+DEBIAN_FRONTEND=noninteractive pam-auth-update --force
