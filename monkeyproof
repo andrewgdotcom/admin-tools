@@ -2,6 +2,10 @@
 # Quick and dirty script to configure monkeysphere and pam-ssh-agent-auth
 # It *should* be idempotent...
 
+# Support headless installation
+export DEBIAN_FRONTEND=noninteractive
+export MONKEYSPHERE_PROMPT=false
+
 # Set some defaults
 ID_CERTIFIERS="00CC54C6A0C601691AF4931FFB73E21AF1163937 2EF5C2AE20512C63A583F83DD3D1096C79937053"
 PRESEED_USER_ID="Andrew Gallagher <andrewg@andrewg.com>"
@@ -18,8 +22,6 @@ fi
 
 apt-get update
 apt-get -y install monkeysphere dirmngr
-
-export MONKEYSPHERE_PROMPT=false
 
 cat > /etc/monkeysphere/monkeysphere-authentication.conf <<EOF
 # Created automatically by monkeyproof script
@@ -122,4 +124,4 @@ cat > /etc/sudoers.d/pam-ssh-agent-auth <<EOF
 Defaults    env_keep += "SSH_AUTH_SOCK"
 EOF
 
-DEBIAN_FRONTEND=noninteractive pam-auth-update --force
+pam-auth-update --force
