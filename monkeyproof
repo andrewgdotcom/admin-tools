@@ -56,6 +56,11 @@ if [ ! -d /etc/monkeysphere/authorized_user_ids ]; then
 	mkdir /etc/monkeysphere/authorized_user_ids
 fi
 echo "$PRESEED_USER_ID" > /etc/monkeysphere/authorized_user_ids/$PRESEED_USER_ACCOUNT
+# Create the account if it doesn't exist
+if [ ! grep ^$PRESEED_USER_ACCOUNT: /etc/passwd ]; then
+	/usr/sbin/useradd $PRESEED_USER_ACCOUNT
+	/usr/sbin/usermod -aG sudo $PRESEED_USER_ACCOUNT
+fi
 /usr/sbin/monkeysphere-authentication update-users
 
 # Make sure updates run in regularly
