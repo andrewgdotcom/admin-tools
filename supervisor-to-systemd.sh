@@ -13,7 +13,7 @@ for superconf in /etc/supervisor/conf.d/*.conf; do
 		exit 1
 	fi
 	
-	if grep ^evironment= $superconf; then
+	if grep ^environment= $superconf; then
 		perl -ne 's/(^environment=)(.*)$/ $2/ && { $flag=1 }; s/^\s+// || { $flag=0 }; if($flag && /./) {print}' $superconf >${directory}/${program}.environment
 	fi
 	
