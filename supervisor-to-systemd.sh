@@ -14,7 +14,7 @@ for superconf in /etc/supervisor/conf.d/*.conf; do
 	fi
 	
 	if grep ^environment= $superconf; then
-		perl -ne 's/(^environment=)(.*)$/ $2/ && { $flag=1 }; s/^\s+// || { $flag=0 }; if($flag && /./) {print}' $superconf >${directory}/${program}.environment
+		perl -ne 's/(^environment=)(.*)$/ $2/ && { $flag=1 }; s/^\s+// || { $flag=0 }; if($flag && /./) {print}' $superconf >$(dirname $directory)/${program}.environment
 	fi
 	
 	cat <<EOF >/etc/systemd/system/${program}.service
@@ -24,7 +24,7 @@ After=network.target auditd.service
 
 [Service]
 WorkingDirectory=${directory}
-EnvironmentFile=-${directory}/${program}.environment
+EnvironmentFile=-$(dirname $directory)/${program}.environment
 ExecStart=${command}
 KillMode=process
 Restart=on-failure
