@@ -38,3 +38,6 @@ Alias=${program}.service
 EOF
 
 done
+
+systemctl daemon-reload
+
