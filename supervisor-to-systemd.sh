@@ -13,11 +13,11 @@ for superconf in /etc/supervisor/conf.d/*.conf; do
 		exit 1
 	fi
 	
-	if grep ^environment= $superconf; then
+	if grep -q ^environment= $superconf; then
 		perl -ne 's/(^environment=)(.*)$/ $2/ && { $flag=1 }; s/^\s+// || { $flag=0 }; if($flag && /./) {print}' $superconf >$(dirname $directory)/${program}.environment
 	fi
 	
-	cat <<EOF >/etc/systemd/system/${program}.service
+	cat <<EOF >/etc/systemd/system/multi-user.target.wants/${program}.service
 [Unit]
 Description=${program}
 After=network.target auditd.service
