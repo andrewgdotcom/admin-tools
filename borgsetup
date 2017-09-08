@@ -98,12 +98,12 @@ esac
 export BORG_PASSPHRASE=$(< /dev/urandom tr -dc A-Za-z0-9 | head -c$PASSPHRASE_LENGTH)
 export BORG_REPO="${REPO_LOCATION}${HOSTNAME}"
 
-if [ ! -x /usr/bin/borg -o ! -x /usr/bin/pip ]; then
-	apt-get update && apt-get -y install borgbackup python-pip
+if [ ! -x /usr/bin/borg -o ! -x /usr/bin/pip3 ]; then
+	apt-get update && apt-get -y install borgbackup python3-pip
 fi
 
 if [ ! -x /usr/local/bin/borgmatic ]; then
-	pip install borgmatic
+	pip3 install borgmatic
 fi
 
 if [ ! -d /etc/borgmatic ]; then
@@ -133,6 +133,7 @@ lost+found
 /var/cache
 /var/lib/mysql
 /var/lib/elasticsearch
+data/nodes
 /var/lib/postgresql
 /var/lib/jenkins/workspace
 /var/lib/docker/tmp
@@ -189,7 +190,6 @@ for i in \$(</etc/borgmatic/excludes.src); do
 done
 EOF
 chmod +x /etc/borgmatic/build-excludes
-/etc/borgmatic/build-excludes || exit 10
 
 cat > /etc/borgmatic/config <<EOF
 [location]
@@ -241,6 +241,14 @@ checks: repository archives
 # Restrict the number of checked archives to the last n.
 check_last: 3
 EOF
+
+
+/etc/borgmatic/build-excludes || exit 10
+
+# Now upgrade from the old config format to yaml
+# TODO: rewrite build-excludes so that it can write yaml natively
+
+upgrade-borgmatic-config || exit 11
 
 # Make sure ordinary users can't read our passphrase etc.
 chmod -R o= /etc/borgmatic
