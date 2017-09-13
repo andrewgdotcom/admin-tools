@@ -2,7 +2,9 @@
 
 # QAD script to migrate supervisor configurations to systemd
 
-for superconf in /etc/supervisor/conf.d/*.conf; do
+FILES=$(exec echo $( perl -ne 'print if s/^files\s*=\s*//' /etc/supervisor/supervisord.conf ))
+
+for superconf in $FILES; do
 	program=$(perl -ne 'print if s/^\[program:(.*)\]$/$1/' $superconf )
 	user=$(perl -ne 'print if s/^user=(.*)$/$1/' $superconf )
 	directory=$(perl -ne 'print if s/^directory=(.*)$/$1/' $superconf )
