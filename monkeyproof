@@ -65,9 +65,11 @@ fi
 
 # Make sure updates run in regularly
 cat > /etc/cron.hourly/monkeysphere <<EOF
+#!/bin/bash
 # Created automatically by monkeyproof script
 /usr/sbin/monkeysphere-authentication update-users > /dev/null
 EOF
+chmod +x /etc/cron.hourly/monkeysphere
 
 # Now configure sshd to read the monkeysphere keys
 
