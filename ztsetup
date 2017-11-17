@@ -3,8 +3,8 @@
 # A QAD script to install zerotier and automatically join a list of networks
 # We also optionally update the local /etc/hosts file
 
-# NETWORKS is a whitespace separated list of zerotier networks to join
-NETWORKS="8056c2e21c000001"
+# NETWORKS is a *newline-separated* list of zerotier networks to join
+NETWORKS="8056c2e21c000001 world"
 
 if [[ -f /etc/ztsetup ]]; then
 	. /etc/ztsetup
@@ -31,10 +31,15 @@ EOF
 	done
 fi
 
+IFS_SAVE="$IFS"
+IFS="
+"
 # auto join the standard networks
 for network in $NETWORKS; do
-  zerotier-cli join $network
+	network_id=${network%% *}
+	zerotier-cli join $network_id
 done
+IFS=$IFS_SAVE
 
 # and add some useful name resolutions
 if [[ -f /etc/zthosts ]]; then
