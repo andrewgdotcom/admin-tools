@@ -98,6 +98,26 @@ esac
 export BORG_PASSPHRASE=$(< /dev/urandom tr -dc A-Za-z0-9 | head -c$PASSPHRASE_LENGTH)
 export BORG_REPO="${REPO_LOCATION}${HOSTNAME}"
 
+if [[ $REMOTE_HOST ]]; then
+
+	# Make sure the remote host is usable
+	if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" "echo -n"; then
+		echo "Can't run commands on remote host, aborting"
+		exit 99
+	fi
+
+	# Sanity check for pre-existing repo
+	if ssh "${REMOTE_USER}@${REMOTE_HOST}" test -d "${REMOTE_DIRECTORY}/${HOSTNAME}"; then
+		echo "Repo already exists! Aborting..."
+		exit 5
+	fi
+
+fi
+
+
+# Put all our fatal errors above this
+
+
 if [ ! -x /usr/bin/borg -o ! -x /usr/bin/pip3 ]; then
 	apt-get update && apt-get -y install borgbackup python3-pip
 fi
@@ -281,11 +301,6 @@ if [ "$REMOTE_HOST" ]; then
 	# this machine with agent forwarding enabled and an id already in
 	# authorized_keys.
 	#
-	if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" "echo -n"; then
-		echo "Can't run commands on remote host, aborting"
-		exit 99
-	fi
-	
 	if ssh "${REMOTE_USER}@${REMOTE_HOST}" "/bin/sh -c exit"; then 
 		# Remote server appears to be fully capable
 		ssh-copy-id -i "$SSH_KEYFILE" "${REMOTE_USER}@${REMOTE_HOST}" || exit $?
@@ -309,12 +324,6 @@ Host $REMOTE_HOST
 	IdentityFile $SSH_KEYFILE
 EOF
 	fi
-fi
-
-# Sanity check for pre-existing repo
-if ssh "${REMOTE_USER}@${REMOTE_HOST}" test -d "${REMOTE_DIRECTORY}/${HOSTNAME}"; then
-	echo "Repo already exists! Aborting..."
-	exit 5
 fi
 
 # We need to su properly to root, otherwise borg makes a mess in our homedir
