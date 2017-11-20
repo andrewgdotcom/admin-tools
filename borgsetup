@@ -100,6 +100,12 @@ export BORG_REPO="${REPO_LOCATION}${HOSTNAME}"
 
 if [[ $REMOTE_HOST ]]; then
 
+	if [[ $REMOTE_HOST_KEY ]]; then
+		# Preseed our (and root's!) known_hosts with the remote host key
+		echo "$REMOTE_HOST_KEY" >> ~/.ssh/known_hosts
+		echo "$REMOTE_HOST_KEY" >> /root/.ssh/known_hosts
+	fi
+
 	# Make sure the remote host is usable
 	if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" "echo -n"; then
 		echo "Can't run commands on remote host, aborting"
@@ -291,12 +297,6 @@ if [ "$REMOTE_HOST" ]; then
 		ssh-keygen -N "" -f "$SSH_KEYFILE" -C "borgmatic root@${HOSTNAME}" || exit 2
 	fi
 
-	if [[ $REMOTE_HOST_KEY ]]; then
-		# Preseed our (and root's!) known_hosts with the remote host key
-		echo "$REMOTE_HOST_KEY" >> ~/.ssh/known_hosts
-		echo "$REMOTE_HOST_KEY" >> /root/.ssh/known_hosts
-	fi
-	
 	# Copy our ssh public key to the remote server. We need to be logged in to 
 	# this machine with agent forwarding enabled and an id already in
 	# authorized_keys.
