@@ -58,7 +58,7 @@ ${WHITELIST}"
 # it until after it has been enabled. This is evil and we must beware.
 
 for host in $WHITELIST; do
-	ufw allow to any port 22 from "${host}" || exit 3
+	ufw allow to any port 22 from "${host%% *} comment ${host#* }" || exit 3
 done
 ufw enable
 
