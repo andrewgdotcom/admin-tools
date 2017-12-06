@@ -61,7 +61,9 @@ for host in $WHITELIST; do
 	echo "Whitelisting ${host%% *} (${host#* })"
 	ufw allow to any port 22 from "${host%% *}" comment "${host#* }" || exit 3
 done
-ufw enable
+
+# This is dangerous
+yes|ufw enable
 
 for network in $SECURE_NETWORKS; do
 
