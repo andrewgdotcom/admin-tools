@@ -2,17 +2,18 @@
 #
 # A QAD script that attempts to intelligently allow access over a (fresh)
 # zerotier network and disables general (but not host-specific) ssh access
-# from the internet.
-# Note the following caveats:
-#
-# - It assumes ufw.
-# - You should have a host-specific ssh rule in place in case it goes wrong
+# from the internet. Note that it assumes ufw.
 
 # NETWORKS is a *newline-separated* list of 6PLANE networks that are 
-# considered "secure". Only the first working one is actually used.
+# considered secure.
 
-NETWORKS="fcab:abab:ab zerotier mgmt
-fcfc:fcfc:fc zerotier general"
+# WHITELIST is a *newline-separated* list of hosts (ipv4 or ipv6) that
+# are considered secure.
+
+NETWORKS="fcab:abab:ab00::/40 zerotier mgmt
+fcfc:fcfc:fc00::/40 zerotier general"
+
+WHITELIST=""
 
 if [[ -f /etc/ztlockdown ]]; then
 	. /etc/ztlockdown
@@ -21,21 +22,20 @@ if [[ -f ~/.ztlockdown ]]; then
 	. ~/.ztlockdown
 fi
 
+SECURE_NETWORKS=""
+
 IFS_SAVE="$IFS"
 IFS="
 "
 for network in $NETWORKS; do
 	network_prefix=${network%% *}
-	if ifconfig | grep -q "${network_prefix}..:"; then
-		SECURE_NETWORK="${network_prefix}00::/40"
-		SECURE_NET_NAME=${network#* }
-		break
+	if /sbin/route -6 | awk '{print $1}' | sort -u | grep -q "${network_prefix}"; then
+		SECURE_NETWORKS="${SECURE_NETWORKS} ${network}"
 	fi
 done
-IFS=$IFS_SAVE
 
-if [ ! $SECURE_NETWORK ]; then
-	echo "Host is not a member of any secure networks!"
+if [ ! $SECURE_NETWORKS ]; then
+	echo "Host is not a member of any secure 6PLANE networks!"
 	exit 1
 fi
 
@@ -43,36 +43,57 @@ if [ ! -x /usr/sbin/ufw ]; then
 	apt-get update && apt-get install ufw || exit 2
 fi
 
-IFS_SAVE="$IFS"
-IFS="
-"
-for i in $(ufw status | grep 'ALLOW\s*Anywhere' | grep -v '(v6)'); do
-	IFS="$IFS_SAVE"
-	UFW_TO=${i%ALLOW*}
-	j=${i#*ALLOW}
-	UFW_FROM=${j%\#*}
-	UFW_COMMENT=${j#*\#}
-	case "$UFW_TO" in
-	22 )
-		echo -n
-		;;
-	* on * )
-		ufw allow from "$SECURE_NETWORK" comment "($SECURE_NET_NAME) ${UFW_COMMENT}"
-		;;
-	* ) 
-		ufw allow from "$SECURE_NETWORK" to "$UFW_TO" comment "($SECURE_NET_NAME) ${UFW_COMMENT}"
-		;;
-	esac
-done
-IFS="$IFS_SAVE"
-
-# Now add VPN ssh access
-ufw allow from "$SECURE_NETWORK" to any app "OpenSSH" comment "($SECURE_NET_NAME)"
-if [ -d /etc/sshguard ]; then
-	echo "$SECURE_NETWORK" >> /etc/sshguard/whitelist
+remote_host=${SSH_CONNECTION%% *}
+if [ ! ${remote_host} ]; then
+	echo "Cannot whitelist current SSH connection. It is unsafe to continue."
+	exit 3
 fi
 
-# And try to delete all instances of general ssh access
+# Add the current remote host to the whitelist
+WHITELIST="${remote_host}
+${WHITELIST}"
+
+# Now whitelist our friendly hosts BEFORE enabling ufw. Note that ufw
+# maintains a latent configuration while disabled, but will not print
+# it until after it has been enabled. This is evil and we must beware.
+
+for host in $WHITELIST; do
+	ufw allow to any port 22 from "${host}" || exit 3
+done
+ufw enable
+
+for network in $SECURE_NETWORKS; do
+
+	SECURE_NETWORK=${network%% *}
+	SECURE_NETWORK_NAME=${network#* }
+
+	for i in $(ufw status | grep 'ALLOW\s*Anywhere' | grep -v '(v6)'); do
+		UFW_TO=${i%ALLOW*}
+		j=${i#*ALLOW}
+		UFW_FROM=${j%\#*}
+		UFW_COMMENT=${j#*\#}
+		case "$UFW_TO" in
+		22 )
+			echo -n
+			;;
+		* on * )
+			ufw allow from "$SECURE_NETWORK" comment "($SECURE_NET_NAME) ${UFW_COMMENT}"
+			;;
+		* ) 
+			ufw allow from "$SECURE_NETWORK" to "$UFW_TO" comment "($SECURE_NET_NAME) ${UFW_COMMENT}"
+			;;
+		esac
+	done
+
+	# add ssh access anyway
+	ufw allow from "$SECURE_NETWORK" to any app "OpenSSH" comment "($SECURE_NET_NAME)"
+	if [ -d /etc/sshguard ]; then
+		echo "$SECURE_NETWORK" >> /etc/sshguard/whitelist
+	fi
+
+done
+
+# And try to delete all instances of generic ssh access
 ufw delete allow OpenSSH
 ufw delete allow 22
 ufw delete allow 22/tcp
