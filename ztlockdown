@@ -79,7 +79,7 @@ for network in $SECURE_NETWORKS; do
 		22 )
 			echo -n
 			;;
-		* on * )
+		*\ on\ * )
 			ufw allow from "$SECURE_NETWORK" comment "($SECURE_NET_NAME) ${UFW_COMMENT}"
 			;;
 		* ) 
