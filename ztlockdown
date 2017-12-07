@@ -1,18 +1,19 @@
 #!/bin/bash
 #
-# A QAD script that attempts to intelligently allow access over a (fresh)
-# zerotier network and disables general (but not host-specific) ssh access
-# from the internet. Note that it assumes ufw.
+# A QAD script that disables general (but not host-specific) ssh access
+# from the internet, whitelists a set of hosts (including the current
+# ssh client IP) for ssh access, and attempts to replicate any existing
+# public internet firewall holes on a set of secure networks.
 
-# NETWORKS is a *newline-separated* list of 6PLANE networks that are 
-# considered secure.
+# This assumes ufw.
 
-# WHITELIST is a *newline-separated* list of hosts (ipv4 or ipv6) that
-# are considered secure.
+# NETWORKS is a *newline-separated* list of network prefixes that are 
+# considered secure and which should have general access.
 
-NETWORKS="fcab:abab:ab00::/40 zerotier mgmt
-fcfc:fcfc:fc00::/40 zerotier general"
+# WHITELIST is a *newline-separated* list of hosts that are considered
+# secure and should have ssh access.
 
+NETWORKS=""
 WHITELIST=""
 
 if [[ -f /etc/ztlockdown ]]; then
@@ -27,18 +28,19 @@ SECURE_NETWORKS=""
 IFS_SAVE="$IFS"
 IFS="
 "
-for network in $NETWORKS; do
-	network_prefix=${network%% *}
-	if /sbin/route -6 | awk '{print $1}' | sort -u | grep -q "${network_prefix}"; then
-		SECURE_NETWORKS="${SECURE_NETWORKS}
-${network}"
-	fi
-done
-
-if [ ! $SECURE_NETWORKS ]; then
-	echo "Host is not a member of any secure 6PLANE networks!"
-	exit 1
-fi
+#for network in $NETWORKS; do
+#	network_prefix=${network%% *}
+#	if /sbin/route -6 | awk '{print $1}' | sort -u | grep -q "${network_prefix}"; then
+#		SECURE_NETWORKS="${SECURE_NETWORKS}
+#${network}"
+#	fi
+#done
+#
+#if [ ! $SECURE_NETWORKS ]; then
+#	echo "Host is not a member of any secure 6PLANE networks!"
+#	exit 1
+#fi
+SECURE_NETWORKS="${NETWORKS}"
 
 if [ ! -x /usr/sbin/ufw ]; then
 	apt-get update && apt-get install ufw || exit 2
@@ -60,7 +62,7 @@ ${WHITELIST}"
 
 for host in $WHITELIST; do
 	echo "Whitelisting ${host%% *} (${host#* })"
-	ufw allow to any port 22 from "${host%% *}" comment "${host#* }" || exit 3
+	ufw allow to any app "OpenSSH" from "${host%% *}" comment "${host#* }" || exit 3
 done
 
 # This is dangerous
