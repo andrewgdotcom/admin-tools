@@ -23,24 +23,9 @@ if [[ -f ~/.ztlockdown ]]; then
 	. ~/.ztlockdown
 fi
 
-SECURE_NETWORKS=""
-
 IFS_SAVE="$IFS"
 IFS="
 "
-#for network in $NETWORKS; do
-#	network_prefix=${network%% *}
-#	if /sbin/route -6 | awk '{print $1}' | sort -u | grep -q "${network_prefix}"; then
-#		SECURE_NETWORKS="${SECURE_NETWORKS}
-#${network}"
-#	fi
-#done
-#
-#if [ ! $SECURE_NETWORKS ]; then
-#	echo "Host is not a member of any secure 6PLANE networks!"
-#	exit 1
-#fi
-SECURE_NETWORKS="${NETWORKS}"
 
 if [ ! -x /usr/sbin/ufw ]; then
 	apt-get update && apt-get install ufw || exit 2
@@ -68,7 +53,7 @@ done
 # This is dangerous
 yes|ufw enable
 
-for network in $SECURE_NETWORKS; do
+for network in $NETWORKS; do
 
 	network_prefix=${network%% *}
 	network_name=${network#* }
