@@ -30,7 +30,8 @@ IFS="
 for network in $NETWORKS; do
 	network_prefix=${network%% *}
 	if /sbin/route -6 | awk '{print $1}' | sort -u | grep -q "${network_prefix}"; then
-		SECURE_NETWORKS="${SECURE_NETWORKS} ${network}"
+		SECURE_NETWORKS="${SECURE_NETWORKS}
+${network}"
 	fi
 done
 
