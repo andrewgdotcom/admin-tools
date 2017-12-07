@@ -50,7 +50,7 @@ if [ ! ${remote_host} ]; then
 fi
 
 # Add the current remote host to the whitelist
-WHITELIST="${remote_host}
+WHITELIST="${remote_host} Autodetected ssh connection
 ${WHITELIST}"
 
 # Now whitelist our friendly hosts BEFORE enabling ufw. Note that ufw
