@@ -67,8 +67,10 @@ yes|ufw enable
 
 for network in $SECURE_NETWORKS; do
 
-	SECURE_NETWORK=${network%% *}
-	SECURE_NETWORK_NAME=${network#* }
+	network_range=${network%% *}
+	network_name=${network#* }
+	
+	echo "Adding ${network_range} (${network_name})"
 
 	for i in $(ufw status | grep 'ALLOW\s*Anywhere' | grep -v '(v6)'); do
 		UFW_TO=${i%ALLOW*}
@@ -80,18 +82,18 @@ for network in $SECURE_NETWORKS; do
 			echo -n
 			;;
 		*\ on\ * )
-			ufw allow from "$SECURE_NETWORK" comment "($SECURE_NET_NAME) ${UFW_COMMENT}"
+			ufw allow from "$network_range" comment "($network_name) ${UFW_COMMENT}"
 			;;
 		* ) 
-			ufw allow from "$SECURE_NETWORK" to "$UFW_TO" comment "($SECURE_NET_NAME) ${UFW_COMMENT}"
+			ufw allow from "$network_range" to "$UFW_TO" comment "($network_name) ${UFW_COMMENT}"
 			;;
 		esac
 	done
 
 	# add ssh access anyway
-	ufw allow from "$SECURE_NETWORK" to any app "OpenSSH" comment "($SECURE_NET_NAME)"
+	ufw allow from "$network_range" to any app "OpenSSH" comment "($network_name)"
 	if [ -d /etc/sshguard ]; then
-		echo "$SECURE_NETWORK" >> /etc/sshguard/whitelist
+		echo "$network_range" >> /etc/sshguard/whitelist
 	fi
 
 done
