@@ -6,8 +6,8 @@
 export DEBIAN_FRONTEND=noninteractive
 
 # A *space-separated* list of LDAP URIs
-LDAP_SERVERS="ldaps://ops.siren.io ldaps://mon1.siren.io"
-BASE_DN="dc=siren,dc=io"
+LDAP_SERVERS="ldaps://pdc.example.com"
+BASE_DN="dc=example,dc=com"
 
 # A *newline-separated* list of sudoers to preseed
 ADMIN_USERS="andgal Andrew Gallagher"
