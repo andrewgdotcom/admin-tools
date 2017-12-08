@@ -75,3 +75,75 @@ chmod og=r /etc/apt/trusted.gpg.d/docker.gpg
 apt-get update
 # make sure the installer does not prompt; there's nobody listening
 DEBIAN_FRONTEND=noninteractive apt-get -y install docker-ce
+
+if [[ $NO_DOCKER_NETWORKING ]]; then
+	echo "Not configuring docker networking"
+	exit 0
+fi
+
+if unbound-control status | grep -q "is running ..."; then
+
+	echo "Unbound detected"
+	echo "Attempting to configure docker to use local DNS resolver"
+
+	if [[ -f /etc/docker/daemon.json ]]; then
+		echo "Docker appears to be already configured. Aborting"
+	fi
+	if [[ -f /etc/unbound/unbound.conf.d/server.conf ]]; then
+		echo "Unbound appears to be already configured. Aborting"
+	fi
+
+	if [[ $DISABLE_IPTABLES ]] ; then
+		cat > /etc/docker/daemon.json <<EOF
+{
+  "iptables": false,
+  "dns": ["172.17.0.1"]
+}
+EOF
+	else
+		cat > /etc/docker/daemon.json <<EOF
+{
+  "dns": ["172.17.0.1"]
+}
+EOF
+	fi
+
+	service docker restart
+	
+	cat > /etc/unbound/unbound.conf.d/server.conf <<EOF
+# Local server configuration 
+# Listen on secure interfaces only - this allows us to be used recursively
+
+server:
+	interface: 127.0.0.1
+	interface: 172.17.0.1		# docker
+	access-control: 172.17.0.0/16 allow
+	access-control: 127.0.0.0/8 allow
+EOF
+	service unbound restart
+
+fi
+
+if grep -q '^*nat' /etc/ufw/before.rules; then
+  if [[ $DISABLE_IPTABLES ]]; then
+
+	echo "Re-enabling outgoing firewall rules for docker containers"
+
+	TMP=$(mktemp)
+	cat >$/etc/ufw/before.rules <<EOF
+
+# NAT table rules
+*nat
+:POSTROUTING ACCEPT [0:0]
+
+# Masquerade outgoing traffic coming from the docker subnet
+-A POSTROUTING -o !docker0 -s 172.17.0.0/16 -j MASQUERADE
+COMMIT
+EOF
+
+	if [[ $(ufw status | head) == "Status: active" ]]; then
+		ufw disable; yes | ufw enable
+	fi
+
+  fi
+fi
