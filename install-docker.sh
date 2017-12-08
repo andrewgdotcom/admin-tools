@@ -109,14 +109,14 @@ EOF
 	fi
 
 	service docker restart
-	
+
 	cat > /etc/unbound/unbound.conf.d/server.conf <<EOF
-# Local server configuration 
+# Local server configuration
 # Listen on secure interfaces only - this allows us to be used recursively
 
 server:
 	interface: 127.0.0.1
-	interface: 172.17.0.1		# docker
+	interface: 172.17.0.1  # docker
 	access-control: 172.17.0.0/16 allow
 	access-control: 127.0.0.0/8 allow
 EOF
