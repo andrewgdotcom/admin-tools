@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -o pipefail
-
 cat <<EOF >/etc/apt/sources.list.d/docker.list
 deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
 EOF
