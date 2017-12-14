@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# A script to bulk operate on all your git repos
+# Searches under PWD for git repos
+
+for gitdir in $(find . -type d -name .git); do
+    repo=$(dirname $gitdir)
+    pushd $repo > /dev/null
+    git $*
+    popd > /dev/null
+done
