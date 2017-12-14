@@ -5,6 +5,7 @@
 
 for gitdir in $(find . -type d -name .git); do
     repo=$(dirname $gitdir)
+    echo "------------------------\nRepository=$repo"
     pushd $repo > /dev/null
     git $*
     popd > /dev/null
