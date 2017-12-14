@@ -20,7 +20,9 @@ fi
 
 # Install and configure monkeysphere
 
-apt-get update
+if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
+  apt-get update
+fi
 apt-get -y install monkeysphere dirmngr
 
 cat > /etc/monkeysphere/monkeysphere-authentication.conf <<EOF
