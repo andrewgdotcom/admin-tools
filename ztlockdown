@@ -13,6 +13,12 @@
 # WHITELIST is a *newline-separated* list of hosts that are considered
 # secure and should have ssh access.
 
+if [[ $(whoami) != "root" ]]; then
+	# If we are not root, we need to use sudo. Non-root is supported
+	# because ansible's "-b" deletes envars such as SSH_CONNECTION
+	SUDO=sudo
+fi
+
 NETWORKS=""
 WHITELIST=""
 
@@ -29,9 +35,9 @@ IFS="
 
 if [ ! -x /usr/sbin/ufw ]; then
 	if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
-		apt-get update
+		${SUDO} apt-get update
 	fi
-	apt-get install ufw || exit 2
+	${SUDO} apt-get install ufw || exit 2
 fi
 
 remote_host=${SSH_CONNECTION%% *}
@@ -50,11 +56,11 @@ ${WHITELIST}"
 
 for host in $WHITELIST; do
 	echo "Whitelisting ${host%% *} (${host#* })"
-	ufw allow to any app "OpenSSH" from "${host%% *}" comment "${host#* }" || exit 3
+	${SUDO} ufw allow to any app "OpenSSH" from "${host%% *}" comment "${host#* }" || exit 3
 done
 
 # This is dangerous
-yes|ufw enable
+yes|${SUDO} ufw enable
 
 for network in $NETWORKS; do
 
@@ -73,29 +79,29 @@ for network in $NETWORKS; do
 			echo -n
 			;;
 		*\ on\ * )
-			ufw allow from "$network_prefix" comment "($network_name) ${UFW_COMMENT}"
+			${SUDO} ufw allow from "$network_prefix" comment "($network_name) ${UFW_COMMENT}"
 			;;
 		* ) 
-			ufw allow from "$network_prefix" to "$UFW_TO" comment "($network_name) ${UFW_COMMENT}"
+			${SUDO} ufw allow from "$network_prefix" to "$UFW_TO" comment "($network_name) ${UFW_COMMENT}"
 			;;
 		esac
 	done
 
 	# add ssh access anyway
-	ufw allow from "$network_prefix" to any app "OpenSSH" comment "($network_name)"
+	${SUDO} ufw allow from "$network_prefix" to any app "OpenSSH" comment "($network_name)"
 	if [ -d /etc/sshguard ]; then
-		echo "$network_prefix" >> /etc/sshguard/whitelist
+		echo "$network_prefix" | ${SUDO} tee -a /etc/sshguard/whitelist
 	fi
 
 done
 
 # And try to delete all instances of generic ssh access
-ufw delete allow OpenSSH
-ufw delete allow 22
-ufw delete allow 22/tcp
+${SUDO} ufw delete allow OpenSSH
+${SUDO} ufw delete allow 22
+${SUDO} ufw delete allow 22/tcp
 
 echo "Current firewall status - check for sanity"
 
-iptables -L -v
-iptables -L -v -t nat
-ufw status
+${SUDO} iptables -L -v
+${SUDO} iptables -L -v -t nat
+${SUDO} ufw status
