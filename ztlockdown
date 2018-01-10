@@ -102,6 +102,7 @@ ${SUDO} ufw delete allow 22/tcp
 
 echo "Current firewall status - check for sanity"
 
-${SUDO} iptables -L -v
-${SUDO} iptables -L -v -t nat
+# use -n to prevent delays
+${SUDO} iptables -L -v -n
+${SUDO} iptables -L -v -n -t nat
 ${SUDO} ufw status
