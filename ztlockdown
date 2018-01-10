@@ -14,9 +14,9 @@
 # secure and should have ssh access.
 
 if [[ $(whoami) != "root" ]]; then
-	# If we are not root, we need to use sudo. Non-root is supported
+	# If we are not root, become root. Non-root invocation is necessary
 	# because most methods of obtaining root reset the environment.
-	# We therefore explicitly pass through any required envars.
+	# Duplicate any required envars on the other side of the sudo.
 	sudo SSH_CONNECTION="${SSH_CONNECTION}" $0
 fi
 
