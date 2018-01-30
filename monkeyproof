@@ -103,7 +103,7 @@ if [[ $serverlist ]]; then
     monkeysphere-host import-key /etc/ssh/ssh_host_rsa_key ssh://${server}
   done
 else
-  echo "WARNING: no valid FQDNs found. Not populating mankeysphere-host DB"
+  echo "WARNING: no valid FQDNs found. Not populating monkeysphere-host DB"
 fi
 
 

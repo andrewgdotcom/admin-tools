@@ -63,5 +63,5 @@ if [[ $serverlist ]]; then
     monkeysphere-host import-key /etc/dropbear-initramfs/dropbear_rsa_host_key ssh://${server}:${PORT}
   done
 else
-  echo "WARNING: no valid FQDNs found. Not populating mankeysphere-host DB"
+  echo "WARNING: no valid FQDNs found. Not populating monkeysphere-host DB"
 fi
