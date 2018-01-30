@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# Tool to install and configure dropbear-initramfs with a set of ssh
+# keys manageable through monkeysphere
+
+# Assume debian, ubuntu
+SUDO=sudo
+# Use nonstandard ssh port; prevents warnings about changed server key
+PORT=2222
+
+if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
+	apt-get update
+fi
+apt-get install dropbear-initramfs
+
+# Create a dummy user so that monkeysphere can manage its keys
+adduser --system --disabled-password --disabled-login \
+	--shell /bin/false --home /var/run/dropbear-initramfs \
+	dropbear-initramfs
+ln -s /var/lib/monkeysphere/authorized_keys/dropbear-initramfs /etc/dropbear-initramfs/authorized_keys
+
+echo "Adding the IDs of all users in group ${SUDO} to dropbear-initramfs user"
+# Add root first, use this to trash stale config
+cat /etc/monkeysphere/authorized_user_ids/root > /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
+
+users=$(getent group ${SUDO} | awk -F: '{print $4}')
+IFS_SAVE=$IFS
+IFS=,
+for user in $users; do
+  IFS=$IFS_SAVE
+  if [[ -e /etc/monkeysphere/authorized_user_ids/$user ]]; then
+    cat /etc/monkeysphere/authorized_user_ids/$user >> /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
+  fi
+done
+
+cat <<EOF >/etc/dropbear-initramfs/config
+#
+# Configuration options for the dropbear-initramfs boot scripts.
+
+#
+# Command line options to pass to dropbear(8)
+#
+DROPBEAR_OPTIONS="-p ${PORT}"
+
+#
+# On local (non-NFS) mounts, interfaces matching this pattern are
+# brought down before exiting the ramdisk to avoid dirty network
+# configuration in the normal kernel.
+# The special value 'none' keeps all interfaces up and preserves routing
+# tables and addresses.
+#
+#IFDOWN=*
+EOF
+
+# Now update user keys and rebuild initramfs
+monkeysphere-authentication u
+update-initramfs -u -k all
+
+# Populate monkeysphere-host database with dropbear's RSA key
+serverlist="$(hostname --fqdn -A | sed 's/ /\n/g' | sort -u)"
+if [[ $serverlist ]]; then
+  for server in $serverlist; do
+    monkeysphere-host import-key /etc/dropbear-initramfs/dropbear_rsa_host_key ssh://${server}:${PORT}
+  done
+else
+  echo "WARNING: no valid FQDNs found. Not populating mankeysphere-host DB"
+fi
