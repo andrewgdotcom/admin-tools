@@ -167,7 +167,7 @@ account	   include	     system-auth-ac
 password   include	     system-auth-ac
 session	   include	     system-auth-ac
 EOF
-  ln -sf /etc/pam.d/system-auth-monkeyproof /etc/pam.d/system-auth
+  ln -sf system-auth-monkeyproof /etc/pam.d/system-auth
   fi
 
 fi
