@@ -2,6 +2,17 @@
 
 # QAD script to install and configure libpam-ldap
 
+if [[ -d /etc/apt ]]; then
+	APT=true
+	SUDO=sudo
+elif [[ -d /etc/yum ]]; then
+	YUM=true
+	SUDO=wheel
+else
+	echo "Distribution not supported!"
+	exit -1
+fi
+
 # Support headless installation
 export DEBIAN_FRONTEND=noninteractive
 
@@ -19,7 +30,9 @@ if [[ -f ~/.install-pam-ldap ]]; then
 	. ~/.install-pam-ldap
 fi
 
-cat >/tmp/debconf-selections <<EOF
+if [[ $APT ]]; then
+
+  cat >/tmp/debconf-selections <<EOF
 ldap-auth-config ldap-auth-config/ldapns/ldap_version select 3
 ldap-auth-config ldap-auth-config/dblogin boolean false
 ldap-auth-config ldap-auth-config/move-to-debconf boolean true
@@ -28,11 +41,33 @@ ldap-auth-config ldap-auth-config/ldapns/base-dn string ${BASE_DN}
 ldap-auth-config ldap-auth-config/dbrootlogin boolean false
 EOF
 
-debconf-set-selections /tmp/debconf-selections
-if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
-  apt-get update
+  debconf-set-selections /tmp/debconf-selections
+  if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
+    apt-get update
+  fi
+  apt-get install -y libpam-ldap
+
+elif [[ $YUM ]]; then
+
+  yum -y install nss-pam-ldapd
+
+  LDAP_SERVER_LIST=""
+  for uri in ${LDAP_SERVERS}; do
+    LDAP_SERVER_LIST="${LDAP_SERVER_LIST}
+uri ${uri}"
+  done
+
+  cat <<EOF >/etc/nslcd.conf
+uid nslcd
+gid ldap
+${LDAP_SERVER_LIST}
+ldap_version 3
+base ${BASE_DN}
+# This comment prevents repeated auto-migration of settings.
+
+EOF
+
 fi
-apt install -y libpam-ldap
 
 IFS="
 "
@@ -40,5 +75,5 @@ for i in $ADMIN_USERS; do
 	userid=${i%% *}
 	realname=${i#* }
 	adduser --disabled-password --gecos $realname $userid
-	usermod -aG sudo $userid
+	usermod -aG ${SUDO} $userid
 done
