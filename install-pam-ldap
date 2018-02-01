@@ -72,8 +72,13 @@ fi
 IFS="
 "
 for i in $ADMIN_USERS; do
-	userid=${i%% *}
-	realname=${i#* }
-	adduser --disabled-password --gecos $realname $userid
+	userid="${i%% *}"
+	realname="${i#* }"
+	if [[ $APT ]]; then
+		adduser --disabled-password --gecos "$realname" $userid
+	else
+		adduser $userid
+		usermod -L $userid
+	fi
 	usermod -aG ${SUDO} $userid
 done
