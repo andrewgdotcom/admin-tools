@@ -30,6 +30,17 @@ REMOTE_DIRECTORY=borg
 # If we are using a local directory, configure it here.
 #LOCAL_DIRECTORY=/var/backups/borg/
 
+if [[ -d /etc/apt ]]; then
+	APT=true
+	SUDO=sudo
+elif [[ -d /etc/yum ]]; then
+	YUM=true
+	SUDO=wheel
+else
+	echo "Distribution not supported!"
+	exit -1
+fi
+
 # Override defaults by sourcing config files. These are cumulative!
 if [[ -f /etc/borgsetup ]]; then
 	. /etc/borgsetup
@@ -123,12 +134,15 @@ fi
 
 # Put all our fatal errors above this
 
-
-if [ ! -x /usr/bin/borg -o ! -x /usr/bin/pip3 ]; then
+if [[ $APT ]]; then
+  if [ ! -x /usr/bin/borg -o ! -x /usr/bin/pip3 ]; then
 	if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
 		apt-get update
 	fi
 	apt-get -y install borgbackup python3-pip
+  fi
+elif [[ $YUM ]]; then
+	yum -y install borgbackup python34-pip
 fi
 
 if [ ! -x /usr/local/bin/borgmatic ]; then
