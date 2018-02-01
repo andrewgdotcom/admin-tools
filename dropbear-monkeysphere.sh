@@ -3,8 +3,17 @@
 # Tool to install and configure dropbear-initramfs with a set of ssh
 # keys manageable through monkeysphere
 
-# Assume debian, ubuntu
-SUDO=sudo
+if [[ -d /etc/apt ]]; then
+	APT=true
+	SUDO=sudo
+#elif [[ -d /etc/yum ]]; then
+#	YUM=true
+#	SUDO=wheel
+else
+	echo "Distribution not supported!"
+	exit -1
+fi
+
 # Use nonstandard ssh port; prevents warnings about changed server key
 PORT=2222
 
