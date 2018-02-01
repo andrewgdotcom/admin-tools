@@ -2,6 +2,15 @@
 # Quick and dirty script to configure monkeysphere and pam-ssh-agent-auth
 # It *should* be idempotent...
 
+if [[ -d /etc/apt ]]; then
+	APT=true
+elif [[ -d /etc/yum ]]; then
+	YUM=true
+else
+	echo "Distribution not supported!"
+	exit -1
+fi
+
 # Support headless installation
 export DEBIAN_FRONTEND=noninteractive
 export MONKEYSPHERE_PROMPT=false
@@ -20,10 +29,14 @@ fi
 
 # Install and configure monkeysphere
 
-if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
-  apt-get update
+if [[ $APT ]]; then
+  if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
+    apt-get update
+  fi
+  apt-get -y install monkeysphere dirmngr
+elif [[ $YUM ]]; then
+  yum -y install monkeysphere
 fi
-apt-get -y install monkeysphere dirmngr
 
 cat > /etc/monkeysphere/monkeysphere-authentication.conf <<EOF
 # Created automatically by monkeyproof script
@@ -109,9 +122,10 @@ fi
 
 # Install and configure libpam-ssh-agent-auth
 
-if apt-get -y install libpam-ssh-agent-auth; then
+if [[ $APT ]]; then
+  if apt-get -y install libpam-ssh-agent-auth; then
 	echo "Installed libpam-ssh-agent-auth from distribution"
-else
+  else
 	cat > /etc/apt/sources.list.d/andrewg.list <<EOF
 deb http://andrewg.com/debian andrewg main
 EOF
@@ -124,9 +138,9 @@ EOF
 		echo "FATAL: Could not install (lib)pam-ssh-agent-auth"
 		exit 1
 	fi
-fi
-
-cat > /usr/share/pam-configs/pam-ssh-agent-auth <<EOF
+  fi
+  
+  cat > /usr/share/pam-configs/pam-ssh-agent-auth <<EOF
 Name: SSH agent authentication
 Default: yes
 Priority: 258
@@ -137,10 +151,25 @@ Auth-Initial:
 	[success=end default=ignore]	pam_ssh_agent_auth.so file=/var/lib/monkeysphere/authorized_keys/%u
 EOF
 
+  pam-auth-update --force
+
+elif [[ $YUM ]]; then
+  yum -y install pam_ssh_agent_auth
+  if ! grep -q pam_ssh_agent_auth.so /etc/pam.d/system-auth; then
+    cat <<EOF >/etc/pam.d/system-auth-monkeyproof
+auth       sufficient    pam_ssh_agent_auth.so file=/var/lib/monkeysphere/authorized_keys/%u
+auth       include       system-auth-ac
+account	   include	     system-auth-ac
+password   include	     system-auth-ac
+session	   include	     system-auth-ac
+EOF
+  ln -sf /etc/pam.d/system-auth-monkeyproof /etc/pam.d/system-auth
+  fi
+fi
+
 cat > /etc/sudoers.d/pam-ssh-agent-auth <<EOF
 # Added automatically by monkeyproof script
 # Older versions of sudo need this to access user ssh-agent
 Defaults    env_keep += "SSH_AUTH_SOCK"
 EOF
 
-pam-auth-update --force
