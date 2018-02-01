@@ -4,8 +4,10 @@
 
 if [[ -d /etc/apt ]]; then
 	APT=true
+	SUDO=sudo
 elif [[ -d /etc/yum ]]; then
 	YUM=true
+	SUDO=wheel
 else
 	echo "Distribution not supported!"
 	exit -1
@@ -74,7 +76,7 @@ echo "$PRESEED_USER_ID" > /etc/monkeysphere/authorized_user_ids/$PRESEED_USER_AC
 # Create the account if it doesn't exist
 if ! grep ^$PRESEED_USER_ACCOUNT: /etc/passwd ; then
 	/usr/sbin/adduser --disabled-password $PRESEED_USER_ACCOUNT --gecos $PRESEED_USER_ACCOUNT
-	/usr/sbin/usermod -aG sudo $PRESEED_USER_ACCOUNT
+	/usr/sbin/usermod -aG ${SUDO} $PRESEED_USER_ACCOUNT
 fi
 /usr/sbin/monkeysphere-authentication update-users
 
@@ -123,6 +125,7 @@ fi
 # Install and configure libpam-ssh-agent-auth
 
 if [[ $APT ]]; then
+
   if apt-get -y install libpam-ssh-agent-auth; then
 	echo "Installed libpam-ssh-agent-auth from distribution"
   else
@@ -139,7 +142,7 @@ EOF
 		exit 1
 	fi
   fi
-  
+
   cat > /usr/share/pam-configs/pam-ssh-agent-auth <<EOF
 Name: SSH agent authentication
 Default: yes
@@ -154,6 +157,7 @@ EOF
   pam-auth-update --force
 
 elif [[ $YUM ]]; then
+
   yum -y install pam_ssh_agent_auth
   if ! grep -q pam_ssh_agent_auth.so /etc/pam.d/system-auth; then
     cat <<EOF >/etc/pam.d/system-auth-monkeyproof
@@ -165,6 +169,7 @@ session	   include	     system-auth-ac
 EOF
   ln -sf /etc/pam.d/system-auth-monkeyproof /etc/pam.d/system-auth
   fi
+
 fi
 
 cat > /etc/sudoers.d/pam-ssh-agent-auth <<EOF
