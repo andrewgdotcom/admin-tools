@@ -20,6 +20,17 @@ if [[ $(whoami) != "root" ]]; then
 	exec sudo SSH_CONNECTION="${SSH_CONNECTION}" $0
 fi
 
+if [[ -d /etc/apt ]]; then
+	APT=true
+	SUDO=sudo
+elif [[ -d /etc/yum ]]; then
+	YUM=true
+	SUDO=wheel
+else
+	echo "Distribution not supported!"
+	exit -1
+fi
+
 NETWORKS=""
 WHITELIST=""
 
@@ -34,11 +45,15 @@ IFS_SAVE="$IFS"
 IFS="
 "
 
-if [ ! -x /usr/sbin/ufw ]; then
+if [[ $APT ]]; then
+  if [ ! -x /usr/sbin/ufw ]; then
 	if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
 		apt-get update
 	fi
 	apt-get install ufw || exit 2
+  fi
+elif [[ $YUM ]]; then
+  yum -y install ufw
 fi
 
 remote_host=${SSH_CONNECTION%% *}
