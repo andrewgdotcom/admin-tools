@@ -292,6 +292,10 @@ EOF
 # Now upgrade from the old config format to yaml
 # TODO: rewrite build-excludes so that it can write yaml natively
 
+if [[ -f /etc/borgmatic/config.yaml ]]; then
+  # Trash this to prevent the upgrade throwing an error
+  rm /etc/borgmatic/config.yaml
+fi
 upgrade-borgmatic-config || exit 11
 
 # Make sure ordinary users can't read our passphrase etc.
