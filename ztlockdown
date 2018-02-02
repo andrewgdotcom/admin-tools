@@ -56,10 +56,10 @@ elif [[ $YUM ]]; then
   yum -y install ufw
 fi
 
-if [[ ufw app info OpenSSH >&/dev/null ]]; then
+if ufw app info OpenSSH >&/dev/null ; then
   SSH_PROFILE="OpenSSH"
   APP_OPENSSH="app OpenSSH"
-elif [[ ufw app info SSH >&/dev/null ]]; then
+elif ufw app info SSH >&/dev/null ; then
   SSH_PROFILE="SSH"
   APP_OPENSSH="app SSH"
 else
