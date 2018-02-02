@@ -326,7 +326,7 @@ if [ "$REMOTE_HOST" ]; then
 		# This is probably due to a restricted shell - try a stupider method
 		# NB this is racy AF. Make sure you have a way to get back in (e.g. password)
 		# TODO: try using sshfs?		
-		TEMPFILE=$(tempfile)
+		TEMPFILE=$(mktemp)
 		scp "${REMOTE_USER}@${REMOTE_HOST}:.ssh/authorized_keys" $TEMPFILE || exit 91
 		cat "${SSH_KEYFILE}.pub" >> $TEMPFILE
 		scp $TEMPFILE "${REMOTE_USER}@${REMOTE_HOST}:.ssh/authorized_keys" || exit 92
