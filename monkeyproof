@@ -68,14 +68,14 @@ for id in $ID_CERTIFIERS; do
 	monkeysphere-authentication add-id-certifier $id
 done
 
-# Add andrewg@andrewg.com as ordinary user also
+# Add preseed user
 if [ ! -d /etc/monkeysphere/authorized_user_ids ]; then
 	mkdir /etc/monkeysphere/authorized_user_ids
 fi
 echo "$PRESEED_USER_ID" > /etc/monkeysphere/authorized_user_ids/$PRESEED_USER_ACCOUNT
 # Create the account if it doesn't exist
-if ! grep ^$PRESEED_USER_ACCOUNT: /etc/passwd ; then
-	/usr/sbin/adduser --disabled-password $PRESEED_USER_ACCOUNT --gecos $PRESEED_USER_ACCOUNT
+if ! grep -q "^$PRESEED_USER_ACCOUNT:" /etc/passwd ; then
+	/usr/sbin/adduser --disabled-password $PRESEED_USER_ACCOUNT --gecos "${PRESEED_USER_ID%%<*}"
 	/usr/sbin/usermod -aG ${SUDO} $PRESEED_USER_ACCOUNT
 fi
 /usr/sbin/monkeysphere-authentication update-users
