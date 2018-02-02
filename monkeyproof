@@ -5,9 +5,11 @@
 if [[ -d /etc/apt ]]; then
 	APT=true
 	SUDO=sudo
+	SSH=ssh
 elif [[ -d /etc/yum ]]; then
 	YUM=true
 	SUDO=wheel
+	SSH=sshd
 else
 	echo "Distribution not supported!"
 	exit -1
@@ -111,11 +113,11 @@ if egrep '^\s*AuthorizedKeysFile\s+%h/.ssh/authorized_keys\s+/var/lib/monkeysphe
 elif egrep '^\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
 	# If there exists a working AuthorizedKeysFile line, comment it out and insert above it
 	perl -pi.bak -e 'if(!$done && s!^(\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n#$1!) {$done=1;}' /etc/ssh/sshd_config
-	service ssh restart
+	service $SSH restart
 elif egrep '^\s*#+\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
 	# If there exists only a commented out AuthorizedKeysFile, insert above it
 	perl -pi.bak -e 'if(!$done && s!^(\s*#+\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n$1!) {$done=1;}' /etc/ssh/sshd_config
-	service ssh restart
+	service $SSH restart
 else
 	# Otherwise append with an explanation
 	cat >> /etc/ssh/sshd_config <<EOF
@@ -123,7 +125,7 @@ else
 # Allow logins with both user-supplied keys and monkeysphere's curated keys
 AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u
 EOF
-	service ssh restart
+	service $SSH restart
 fi
 
 # Populate monkeysphere-host database with SSH's RSA key
