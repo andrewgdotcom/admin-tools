@@ -75,10 +75,13 @@ for i in $ADMIN_USERS; do
 	userid="${i%% *}"
 	realname="${i#* }"
 	if [[ $APT ]]; then
-		adduser --disabled-password --gecos "$realname" $userid
-	else
+		# We can and must do this on one line, else we get prompted
+		adduser --disabled-password --gecos "${realname}" $userid
+	elif [[ $YUM ]]; then
+		# We can't do it on one line, but adduser doesn't complain
 		adduser $userid
-		usermod -L $userid
+		usermod --lock $userid
+		usermod --comment "${realname}" $userid
 	fi
 	usermod -aG ${SUDO} $userid
 done

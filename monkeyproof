@@ -40,6 +40,13 @@ elif [[ $YUM ]]; then
   yum -y install monkeysphere
 fi
 
+# Monkeysphere in EPEL is broken by default; it sets the user shell to
+# /sbin/nologin, so the commands can't drop privileges.
+# This has been fixed in fedora for years:
+#   https://bugzilla.redhat.com/show_bug.cgi?id=732191
+# Force a sane login shell no matter what.
+chsh -s /bin/bash monkeysphere
+
 cat > /etc/monkeysphere/monkeysphere-authentication.conf <<EOF
 # Created automatically by monkeyproof script
 # This config prevents privilege escalation when using pam-ssh-agent-auth
@@ -75,10 +82,18 @@ fi
 echo "$PRESEED_USER_ID" > /etc/monkeysphere/authorized_user_ids/$PRESEED_USER_ACCOUNT
 # Create the account if it doesn't exist
 if ! grep -q "^$PRESEED_USER_ACCOUNT:" /etc/passwd ; then
-	/usr/sbin/adduser --disabled-password $PRESEED_USER_ACCOUNT --gecos "${PRESEED_USER_ID%%<*}"
-	/usr/sbin/usermod -aG ${SUDO} $PRESEED_USER_ACCOUNT
+	if [[ $APT ]]; then
+		# We can and must do this on one line, else we get prompted
+		adduser --disabled-password --gecos "${PRESEED_USER_ID%%<*}" $PRESEED_USER_ACCOUNT
+	elif [[ $YUM ]]; then
+		# We can't do it on one line, but adduser doesn't complain
+		adduser $PRESEED_USER_ACCOUNT
+		usermod --lock $PRESEED_USER_ACCOUNT
+		usermod --comment "${PRESEED_USER_ID%%<*}" $PRESEED_USER_ACCOUNT
+	fi
+	usermod -aG ${SUDO} $PRESEED_USER_ACCOUNT
 fi
-/usr/sbin/monkeysphere-authentication update-users
+monkeysphere-authentication update-users
 
 # Make sure updates run in regularly
 cat > /etc/cron.hourly/monkeysphere <<EOF
