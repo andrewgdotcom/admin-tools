@@ -58,13 +58,11 @@ fi
 
 if ufw app info OpenSSH >&/dev/null ; then
   SSH_PROFILE="OpenSSH"
-  APP_OPENSSH="app OpenSSH"
 elif ufw app info SSH >&/dev/null ; then
   SSH_PROFILE="SSH"
-  APP_OPENSSH="app SSH"
 else
-  # No profiles, but this should not be fatal - just uglier
-  APP_OPENSSH="port 22"
+  echo "SSH UFW profile not found. Aborting"
+  exit 8
 fi
 
 remote_host=${SSH_CONNECTION%% *}
@@ -83,7 +81,7 @@ ${WHITELIST}"
 
 for host in $WHITELIST; do
 	echo "Whitelisting ${host%% *} (${host#* })"
-	ufw allow to any $APP_OPENSSH from "${host%% *}" comment "${host#* }" || exit 3
+	ufw allow to any app $SSH_PROFILE from "${host%% *}" comment "${host#* }" || exit 3
 done
 
 # This is dangerous
@@ -115,7 +113,7 @@ for network in $NETWORKS; do
 	done
 
 	# add ssh access anyway
-	ufw allow from "$network_prefix" to any $APP_OPENSSH comment "($network_name)"
+	ufw allow from "$network_prefix" to any app $SSH_PROFILE comment "($network_name)"
 	if [ -d /etc/sshguard ]; then
 		echo "$network_prefix" >> /etc/sshguard/whitelist
 	fi
@@ -123,9 +121,7 @@ for network in $NETWORKS; do
 done
 
 # And try to delete all instances of generic ssh access
-if [[ $SSH_PROFILE ]]; then
-  ufw delete allow $SSH_PROFILE
-fi
+ufw delete allow $SSH_PROFILE
 ufw delete allow 22
 ufw delete allow 22/tcp
 
