@@ -81,6 +81,8 @@ ${WHITELIST}"
 
 for host in $WHITELIST; do
 	echo "Whitelisting ${host%% *} (${host#* })"
+
+	### TODO: work out why the first invocation throws "ERROR: problem running"
 	ufw allow to any app $SSH_PROFILE from "${host%% *}" comment "${host#* }" || echo "Retrying in case of CentOS stupidity..."
 	ufw allow to any app $SSH_PROFILE from "${host%% *}" comment "${host#* }" || exit 3
 done
@@ -94,6 +96,8 @@ for network in $NETWORKS; do
 	network_name=${network#* }
 	
 	echo "Adding ${network_prefix} (${network_name})"
+
+	### TODO: use "ufw show added", which is more reliably parseable
 
 	for i in $(ufw status | grep 'ALLOW\s*Anywhere' | grep -v '(v6)'); do
 		UFW_TO=${i%ALLOW*}
