@@ -49,23 +49,13 @@ EOF
 
 elif [[ $YUM ]]; then
 
-  yum -y install nss-pam-ldapd
+  yum -y install nss-pam-ldapd authconfig
+  authconfig --enableldapauth --ldapserver="${LDAP_SERVER_LIST}" --ldapbasedn="${BASE_DN}" --enablerfc2307bis --disableldaptls --update
 
-  LDAP_SERVER_LIST=""
-  for uri in ${LDAP_SERVERS}; do
-    LDAP_SERVER_LIST="${LDAP_SERVER_LIST}
-uri ${uri}"
-  done
-
-  cat <<EOF >/etc/nslcd.conf
-uid nslcd
-gid ldap
-${LDAP_SERVER_LIST}
-ldap_version 3
-base ${BASE_DN}
-# This comment prevents repeated auto-migration of settings.
-
-EOF
+  # Unnecessary shit like this is why I use Debian.
+  # https://serverfault.com/questions/437546/centos-openldap-cert-trust-issues
+  echo "tls_cacertfile /etc/pki/tls/certs/ca-bundle.crt" >> /etc/nslcd.conf
+  service nslcd restart
 
 fi
 
