@@ -81,6 +81,7 @@ ${WHITELIST}"
 
 for host in $WHITELIST; do
 	echo "Whitelisting ${host%% *} (${host#* })"
+	ufw allow to any app $SSH_PROFILE from "${host%% *}" comment "${host#* }" || echo "Retrying in case of CentOS stupidity..."
 	ufw allow to any app $SSH_PROFILE from "${host%% *}" comment "${host#* }" || exit 3
 done
 
@@ -104,15 +105,18 @@ for network in $NETWORKS; do
 			echo -n
 			;;
 		*\ on\ * )
+			ufw allow from "$network_prefix" comment "($network_name) ${UFW_COMMENT}" || \
 			ufw allow from "$network_prefix" comment "($network_name) ${UFW_COMMENT}"
 			;;
 		* ) 
+			ufw allow from "$network_prefix" to "$UFW_TO" comment "($network_name) ${UFW_COMMENT}" || \
 			ufw allow from "$network_prefix" to "$UFW_TO" comment "($network_name) ${UFW_COMMENT}"
 			;;
 		esac
 	done
 
 	# add ssh access anyway
+	ufw allow from "$network_prefix" to any app $SSH_PROFILE comment "($network_name)" || \
 	ufw allow from "$network_prefix" to any app $SSH_PROFILE comment "($network_name)"
 	if [ -d /etc/sshguard ]; then
 		echo "$network_prefix" >> /etc/sshguard/whitelist
