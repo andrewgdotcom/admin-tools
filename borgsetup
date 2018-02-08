@@ -33,9 +33,11 @@ REMOTE_DIRECTORY=borg
 if [[ -d /etc/apt ]]; then
 	APT=true
 	SUDO=sudo
+	BORGMATIC=/usr/local/bin/borgmatic
 elif [[ -d /etc/yum ]]; then
 	YUM=true
 	SUDO=wheel
+	BORGMATIC=/usr/bin/borgmatic
 else
 	echo "Distribution not supported!"
 	exit -1
@@ -145,7 +147,7 @@ elif [[ $YUM ]]; then
 	yum -y install borgbackup python34-pip
 fi
 
-if [ ! -x /usr/local/bin/borgmatic ]; then
+if [ ! -x /usr/local/bin/borgmatic && ! -x /usr/bin/borgmatic ]; then
 	pip3 install borgmatic
 fi
 
@@ -161,7 +163,7 @@ let "RANDMIN = $RANDOM % 60"
 cat > /etc/cron.d/borgmatic <<EOF
 10 0 * * * root test -x /usr/bin/mysqldump && mysqldump -A -R -E --single-transaction --add-drop-table --triggers > /var/backups/mysql
 20 0 * * * root test -x /usr/bin/pg_dumpall && sudo -u postgres pg_dumpall > /var/backups/postgres
-$RANDMIN $RANDHOUR * * * root PATH=\$PATH:/usr/local/bin /usr/local/bin/borgmatic | logger -t borgmatic
+$RANDMIN $RANDHOUR * * * root PATH=\$PATH:/usr/local/bin $BORGMATIC | logger -t borgmatic
 EOF
 service cron reload
 
@@ -190,6 +192,8 @@ jfrog/artifactory/data
 /run
 /dev
 /sys
+/u01
+/u02
 EOF
 
 cat > /etc/borgmatic/build-excludes <<EOF
@@ -356,7 +360,7 @@ BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
 
 if [ "$IMMEDIATE_BACKUP" ]; then
 	# use "su -" this time, because we want to emulate a cronny environment
-	su - -c /usr/local/bin/borgmatic > /tmp/borg-immediate-backup.log 2>&1 &
+	su - -c $BORGMATIC > /tmp/borg-immediate-backup.log 2>&1 &
 fi
 
 # If we got this far, it must have worked. Save our settings in .bashrc so we
