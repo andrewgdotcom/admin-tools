@@ -1,10 +1,16 @@
 #!/bin/bash
 
+# TODO: in stretch and later, we should follow the procedure in
+# https://wiki.debian.org/DebianRepository/UseThirdParty instead.
+
 cat <<EOF >/etc/apt/sources.list.d/docker.list
 deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
 EOF
 
-cat <<EOF | gpg --no-default-keyring --keyring /etc/apt/trusted.gpg.d/docker.gpg --import
+# Avoid race conditions
+TMPDIR=$(mktemp -d)
+
+cat <<EOF | gpg --no-default-keyring --keyring $TMPDIR/docker.gpg --import
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v1
 
@@ -69,8 +75,10 @@ YT90qFF93M3v01BbxP+EIY2/9tiIPbrd
 =0YYh
 -----END PGP PUBLIC KEY BLOCK-----
 EOF
+gpg --no-default-keyring --keyring $TMPDIR/docker.gpg --export 8D81803C0EBFCD88 > /etc/apt/trusted.gpg.d/docker.gpg
 # make sure it's readable by the 'apt' user
 chmod og=r /etc/apt/trusted.gpg.d/docker.gpg
+rm -rf $TMPDIR
 
 apt-get update
 # make sure the installer does not prompt; there's nobody listening
