@@ -372,13 +372,19 @@ export BORG_PASSPHRASE=$BORG_PASSPHRASE
 EOF
 
 # Dump our info to stdout where e.g. ansible can pick it up
-echo
-echo "BORG AUTOCONFIGURATION SUCCEEDED"
-echo
-echo "SAVE THE FOLLOWING INFO SOMEWHERE VERY VERY SAFE"
-echo
-echo "Borg repo = $BORG_REPO"
-echo "Encryption passphrase = $BORG_PASSPHRASE"
-echo "Encryption keyfile = $BORG_KEYFILE , contents follow:"
+cat <<EOF
+
+BORG AUTOCONFIGURATION SUCCEEDED
+
+SAVE THE FOLLOWING INFO SOMEWHERE VERY VERY SAFE
+
+Borg repo = $BORG_REPO
+Encryption passphrase = $BORG_PASSPHRASE
+Encryption keyfile = $BORG_KEYFILE , contents follow:
+EOF
 # force onto one line; ansible does fancy stuff with multiline output
 cat $BORG_KEYFILE | tr '\r\n' ' '
+cat <<EOF
+
+The above has been saved in /root/.config/borg/keys and /root/.bashrc
+EOF
