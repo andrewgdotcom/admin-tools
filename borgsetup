@@ -192,8 +192,8 @@ jfrog/artifactory/data
 /run
 /dev
 /sys
-/u01
-/u02
+u01
+u02
 EOF
 
 cat > /etc/borgmatic/build-excludes <<EOF
