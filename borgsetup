@@ -70,10 +70,10 @@ case "$HOSTNAME" in
 	;;
 esac
 
-if [ "$REMOTE_HOST" ]; then
+if [[ "$REMOTE_HOST" ]]; then
 	REPO_LOCATION="${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIRECTORY}"
-elif [ "$LOCAL_DIRECTORY" ]; then
-	if [ "$LOCAL_DIRECTORY" = "/" ]; then
+elif [[ "$LOCAL_DIRECTORY" ]]; then
+	if [[ "$LOCAL_DIRECTORY" = "/" ]]; then
 		echo "Don't use / as your backup location! Aborting."
 		exit 1
 	fi
@@ -137,8 +137,8 @@ fi
 # Put all our fatal errors above this
 
 if [[ $APT ]]; then
-  if [ ! -x /usr/bin/borg -o ! -x /usr/bin/pip3 ]; then
-	if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
+  if [[ ! -x /usr/bin/borg || ! -x /usr/bin/pip3 ]]; then
+	if [[ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]]; then
 		apt-get update
 	fi
 	apt-get -y install borgbackup python3-pip
@@ -147,11 +147,11 @@ elif [[ $YUM ]]; then
 	yum -y install borgbackup python34-pip
 fi
 
-if [ ! -x /usr/local/bin/borgmatic && ! -x /usr/bin/borgmatic ]; then
+if [[ ! -x $BORGMATIC ]]; then
 	pip3 install borgmatic
 fi
 
-if [ ! -d /etc/borgmatic ]; then
+if [[ ! -d /etc/borgmatic ]]; then
 	mkdir /etc/borgmatic
 fi
 
@@ -167,7 +167,7 @@ $RANDMIN $RANDHOUR * * * root PATH=\$PATH:/usr/local/bin $BORGMATIC | logger -t 
 EOF
 service cron reload
 
-if [ -x /usr/bin/pg_dumpall ]; then
+if [[ -x /usr/bin/pg_dumpall ]]; then
 	touch /var/backups/postgres && chown postgres /var/backups/postgres
 fi
 
@@ -308,18 +308,18 @@ chmod -R o= /etc/borgmatic
 ### Fire in the hole. ###
 
 # If using local repos make some sanity checks
-if [ -z "$REMOTE_HOST" ]; then
+if [[ -z "$REMOTE_HOST" ]]; then
 	# Make sure the location exists
-	if [ ! -d "$REPO_LOCATION" ]; then
+	if [[ ! -d "$REPO_LOCATION" ]]; then
 		mkdir -p "$REPO_LOCATION"
 	fi
 	# Add our repo to the excludes, to prevent recursion
 	echo "$BORG_REPO" >> /etc/borgmatic/excludes
 fi
 
-if [ "$REMOTE_HOST" ]; then
+if [[ "$REMOTE_HOST" ]]; then
 	# Make ourselves a dedicated ssh key with no passphrase
-	if [ ! -f "$SSH_KEYFILE" ]; then
+	if [[ ! -f "$SSH_KEYFILE" ]]; then
 		ssh-keygen -N "" -f "$SSH_KEYFILE" -C "borgmatic root@${HOSTNAME}" || exit 2
 	fi
 
@@ -358,7 +358,7 @@ su -c "borg init -e keyfile ${BORG_REPO}" || exit 4
 
 BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
 
-if [ "$IMMEDIATE_BACKUP" ]; then
+if [[ "$IMMEDIATE_BACKUP" ]]; then
 	# use "su -" this time, because we want to emulate a cronny environment
 	su - -c $BORGMATIC > /tmp/borg-immediate-backup.log 2>&1 &
 fi
