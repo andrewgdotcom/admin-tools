@@ -103,7 +103,12 @@ for network in $NETWORKS; do
 		UFW_TO=${i%ALLOW*}
 		j=${i#*ALLOW}
 		UFW_FROM=${j%\#*}
-		UFW_COMMENT=${j#*\#}
+		if [[ "$UFW_FROM" != "$j" ]]; then
+		    # there was a comment; preserve it
+			UFW_COMMENT=${j#*\#}
+		else
+			UFW_COMMENT=""
+		fi
 		case "$UFW_TO" in
 		22 )
 			echo -n
