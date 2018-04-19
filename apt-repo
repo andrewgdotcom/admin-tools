@@ -10,7 +10,7 @@ if [[ ! $3 ]]; then
 Usage: $0 REPO_NAME "REPO_CONFIG" GPGKEY_URL
 
 A utility to safely add an APT repository with a GPG signing key, while 
-avoiding the unsafe use of `curl GPGKEY_URL | apt-key add -` 
+avoiding the unsafe use of 'curl GPGKEY_URL | apt-key add -'
 
 REPO_NAME is a unique local identifier for the repo.
 
