@@ -9,7 +9,7 @@ if [[ ! $3 ]]; then
   cat <<EOF
 Usage: $0 REPO_NAME "REPO_CONFIG" GPGKEY_URL
 
-A utility to safely add an APT repository with a GPG signing key, while 
+A utility to safely add an APT repository with a GPG signing key, while
 avoiding the unsafe use of 'curl GPGKEY_URL | apt-key add -'
 
 REPO_NAME is a unique local identifier for the repo.
@@ -39,6 +39,7 @@ if [[ -f $SOURCES_FILE || -f $GPGKEY_FILE ]]; then
 fi
 
 cat <<EOF >$SOURCES_FILE
+# Created by $0 with: $0 $1 \"$2\" $3
 deb [signed-by=$GPGKEY_FILE] $REPO_CONFIG
 EOF
 
@@ -48,4 +49,3 @@ gpg --no-default-keyring --keyring=$GPGKEY_FILE --import $TMPFILE
 # This might leave a backup file; clean it up
 rm "$GPGKEY_FILE~" || echo -n
 rm $TMPFILE
-
