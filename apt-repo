@@ -61,7 +61,7 @@ EOF
   curl $CURL_FLAGS -o $TMPFILE $GPGKEY_URL
   gpg --no-default-keyring --keyring=$GPGKEY_FILE --import $TMPFILE
   # This might leave a backup file; clean it up
-  rm "$GPGKEY_FILE~" || echo -n
+  rm "$GPGKEY_FILE~" || true
   rm $TMPFILE
 
   ;;
@@ -78,7 +78,7 @@ EOF
     exit 2
   fi
 
-  rm $SOURCES_FILE $GPGKEY_FILE || echo -n
+  rm $SOURCES_FILE $GPGKEY_FILE || true
 
   ;;
 esac
