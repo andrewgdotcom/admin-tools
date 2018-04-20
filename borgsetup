@@ -30,6 +30,8 @@ REMOTE_DIRECTORY=borg
 # If we are using a local directory, configure it here.
 #LOCAL_DIRECTORY=/var/backups/borg/
 
+SCRIPT_DIR=$(dirname $(readlink -f $0))
+
 if [[ -d /etc/apt ]]; then
 	APT=true
 	SUDO=sudo
@@ -155,6 +157,9 @@ if [[ ! -d /etc/borgmatic ]]; then
 	mkdir /etc/borgmatic
 fi
 
+cp $SCRIPT_DIR/borg-silencer.pl /usr/local/bin/
+chmod +x /usr/local/bin/borg-silencer.pl
+
 # Randomise backups between 1am and 6am inclusive
 let "RANDHOUR = $RANDOM % 5 + 1"
 let "RANDMIN = $RANDOM % 60"
@@ -163,7 +168,7 @@ let "RANDMIN = $RANDOM % 60"
 cat > /etc/cron.d/borgmatic <<EOF
 10 0 * * * root test -x /usr/bin/mysqldump && mysqldump -A -R -E --single-transaction --add-drop-table --triggers > /var/backups/mysql
 20 0 * * * root test -x /usr/bin/pg_dumpall && sudo -u postgres pg_dumpall > /var/backups/postgres
-$RANDMIN $RANDHOUR * * * root PATH=\$PATH:/usr/local/bin $BORGMATIC | logger -t borgmatic
+$RANDMIN $RANDHOUR * * * root PATH=\$PATH:/usr/local/bin $BORGMATIC 2> >( /usr/local/bin/borg-silencer.pl 2>&1 ) | logger -t borgmatic
 EOF
 service cron reload
 
@@ -323,17 +328,17 @@ if [[ "$REMOTE_HOST" ]]; then
 		ssh-keygen -N "" -f "$SSH_KEYFILE" -C "borgmatic root@${HOSTNAME}" || exit 2
 	fi
 
-	# Copy our ssh public key to the remote server. We need to be logged in to 
+	# Copy our ssh public key to the remote server. We need to be logged in to
 	# this machine with agent forwarding enabled and an id already in
 	# authorized_keys.
 	#
-	if ssh "${REMOTE_USER}@${REMOTE_HOST}" "/bin/sh -c exit"; then 
+	if ssh "${REMOTE_USER}@${REMOTE_HOST}" "/bin/sh -c exit"; then
 		# Remote server appears to be fully capable
 		ssh-copy-id -i "$SSH_KEYFILE" "${REMOTE_USER}@${REMOTE_HOST}" || exit $?
 	else
 		# This is probably due to a restricted shell - try a stupider method
 		# NB this is racy AF. Make sure you have a way to get back in (e.g. password)
-		# TODO: try using sshfs?		
+		# TODO: try using sshfs?
 		TEMPFILE=$(mktemp)
 		scp "${REMOTE_USER}@${REMOTE_HOST}:.ssh/authorized_keys" $TEMPFILE || exit 91
 		cat "${SSH_KEYFILE}.pub" >> $TEMPFILE
