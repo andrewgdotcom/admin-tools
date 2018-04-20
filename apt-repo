@@ -5,9 +5,10 @@ CURL_FLAGS="-LSsf"
 
 SOURCES_DIR=/etc/apt/sources.list.d
 
-if [[ ! $3 ]]; then
+usage() {
   cat <<EOF
-Usage: $0 REPO_NAME "REPO_CONFIG" GPGKEY_URL
+Usage: $0 add REPO_NAME "REPO_CONFIG" GPGKEY_URL
+       $0 remove REPO_NAME
 
 A utility to safely add an APT repository with a GPG signing key, while
 avoiding the unsafe use of 'curl GPGKEY_URL | apt-key add -'
@@ -23,29 +24,61 @@ GPGKEY_URL is a URL from which to download the signing key of the repo.
 This tool implements the safe third-party repo method as described in
 https://wiki.debian.org/DebianRepository/UseThirdParty
 EOF
+}
+
+if [[ ! $2 ]]; then
+  usage()
   exit 1
 fi
 
-REPO_NAME="$1"
-REPO_CONFIG="$2"
-GPGKEY_URL="$3"
-
+REPO_NAME="$2"
 SOURCES_FILE="$SOURCES_DIR/$REPO_NAME".list
 GPGKEY_FILE="$SOURCES_DIR/.$REPO_NAME".gpg
 
-if [[ -f $SOURCES_FILE || -f $GPGKEY_FILE ]]; then
-  echo "Unable to create files; repo already configured!"
-  exit 2
-fi
+case "$1" in
 
-cat <<EOF >$SOURCES_FILE
-# Created by $0 with: $0 $1 \"$2\" $3
+"add")
+
+  if [[ ! $4 || $5 ]]; then
+    usage()
+    exit 1
+  fi
+
+  REPO_CONFIG="$3"
+  GPGKEY_URL="$4"
+
+  if [[ -f $SOURCES_FILE || -f $GPGKEY_FILE ]]; then
+    echo "Unable to create files; repo already configured!"
+    exit 2
+  fi
+
+  cat <<EOF >$SOURCES_FILE
+# Created by $0 with: $0 add \"$2\" \"$3\" \"$4\"
 deb [signed-by=$GPGKEY_FILE] $REPO_CONFIG
 EOF
 
-TMPFILE=$(mktemp)
-curl $CURL_FLAGS -o $TMPFILE $GPGKEY_URL
-gpg --no-default-keyring --keyring=$GPGKEY_FILE --import $TMPFILE
-# This might leave a backup file; clean it up
-rm "$GPGKEY_FILE~" || echo -n
-rm $TMPFILE
+  TMPFILE=$(mktemp)
+  curl $CURL_FLAGS -o $TMPFILE $GPGKEY_URL
+  gpg --no-default-keyring --keyring=$GPGKEY_FILE --import $TMPFILE
+  # This might leave a backup file; clean it up
+  rm "$GPGKEY_FILE~" || echo -n
+  rm $TMPFILE
+
+  ;;
+
+"remove")
+
+  if [[ ! $4 || $5 ]]; then
+    usage()
+    exit 1
+  fi
+
+  if [[ ! -f $SOURCES_FILE && ! -f $GPGKEY_FILE ]]; then
+    echo "Unable to delete files; repo not configured!"
+    exit 2
+  fi
+
+  rm $SOURCES_FILE $GPGKEY_FILE || echo -n
+
+  ;;
+esac
