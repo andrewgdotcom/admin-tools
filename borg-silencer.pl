@@ -21,14 +21,16 @@ my @transcript=(
 "This problem will go away as soon as the server has been upgraded to 1.0.7+.",
 );
 
-my $index=0;
 while(<>) {
-  chop;
-  while($index<13 && m/^${transcript[$index]}/) {
+  my $index=0;
+  while(m/^${transcript[$index]}/) {
+    # Slurp in next line and move down the transcript. We loop over this
+    # until the transcript no longer matches the input.
     $_=<>;
     $index++;
+    # If we hit length of transcript, reset index to zero. This means we are
+    # primed to detect the beginning of a new transcript immediately.
+    $index%=13;
   }
-  $index=0;
-  print "$_\n";
-
+  print;
 }
