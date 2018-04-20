@@ -4,11 +4,12 @@ set -e
 CURL_FLAGS="-LSsf"
 
 SOURCES_DIR=/etc/apt/sources.list.d
+BASENAME=$(basename $0)
 
 usage() {
   cat <<EOF
-Usage: $0 add REPO_NAME "REPO_CONFIG" GPGKEY_URL
-       $0 remove REPO_NAME
+Usage: $BASENAME add REPO_NAME "REPO_CONFIG" GPGKEY_URL
+       $BASENAME remove REPO_NAME
 
 A utility to safely add an APT repository with a GPG signing key, while
 avoiding the unsafe use of 'curl GPGKEY_URL | apt-key add -'
@@ -53,7 +54,8 @@ case "$1" in
   fi
 
   cat <<EOF >$SOURCES_FILE
-# Created by $0 with: $0 add \"$2\" \"$3\" \"$4\"
+# Created by $0 with: $BASENAME add \"$2\" \"$3\" \"$4\"
+# To clean up use: $BASENAME remove \"$2\"
 deb [signed-by=$GPGKEY_FILE] $REPO_CONFIG
 EOF
 
@@ -81,4 +83,11 @@ EOF
   rm $SOURCES_FILE $GPGKEY_FILE || true
 
   ;;
+
+* )
+
+  usage()
+  exit 2
+  ;;
+
 esac
