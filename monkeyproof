@@ -101,7 +101,12 @@ monkeysphere-authentication update-users
 cat > /etc/cron.hourly/monkeysphere <<EOF
 #!/bin/bash
 # Created automatically by monkeyproof script
-/usr/sbin/monkeysphere-authentication update-users > /dev/null
+TRIES=6
+for (( i=0; i<TRIES; i++)); do
+  monkeysphere-authentication update-users 2> /dev/null && exit 0
+	sleep 300
+done
+echo "monkeysphere-authentication gave up after $TRIES tries"
 EOF
 chmod +x /etc/cron.hourly/monkeysphere
 
@@ -194,4 +199,3 @@ cat > /etc/sudoers.d/pam-ssh-agent-auth <<EOF
 # Older versions of sudo need this to access user ssh-agent
 Defaults    env_keep += "SSH_AUTH_SOCK"
 EOF
-
