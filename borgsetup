@@ -169,14 +169,14 @@ if [[ -f /usr/local/bin/borg-silencer.pl || -f $SCRIPT_DIR/borg-silencer.pl ]]; 
   # We need to escape $PATH so that it is evaluated by cron, not here
   cat > /etc/cron.d/borgmatic <<EOF
 10 0 * * * root test -x /usr/bin/mysqldump && test -d /run/mysqld && mysqldump -A -R -E --single-transaction --add-drop-table --triggers > /var/backups/mysql
-20 0 * * * root test -x /usr/bin/pg_dumpall && test -d /run/postgresql && sudo -u postgres pg_dumpall > /var/backups/postgres
+20 0 * * * root test -x /usr/bin/pg_dumpall && test -d /run/postgresql && cd /tmp && sudo -u postgres pg_dumpall > /var/backups/postgres
 $RANDMIN $RANDHOUR * * * root /bin/bash -c "PATH=\$PATH:/usr/local/bin $BORGMATIC 2> >( /usr/local/bin/borg-silencer.pl 2>&1 ) | logger -t borgmatic"
 EOF
 else
   # We need to escape $PATH so that it is evaluated by cron, not here
   cat > /etc/cron.d/borgmatic <<EOF
 10 0 * * * root test -x /usr/bin/mysqldump && test -d /run/mysqld && mysqldump -A -R -E --single-transaction --add-drop-table --triggers > /var/backups/mysql
-20 0 * * * root test -x /usr/bin/pg_dumpall && test -d /run/postgresql && sudo -u postgres pg_dumpall > /var/backups/postgres
+20 0 * * * root test -x /usr/bin/pg_dumpall && test -d /run/postgresql && cd /tmp && sudo -u postgres pg_dumpall > /var/backups/postgres
 $RANDMIN $RANDHOUR * * * root /bin/bash -c "PATH=\$PATH:/usr/local/bin $BORGMATIC | logger -t borgmatic"
 EOF
 fi
