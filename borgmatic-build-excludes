@@ -1,9 +1,10 @@
 #!/bin/bash
 set -o noglob
-if [ -f /etc/borgmatic/excludes ]; then
+if [[ -f /etc/borgmatic/excludes.src ]]; then
+  if [ -f /etc/borgmatic/excludes ]; then
 	mv /etc/borgmatic/excludes /etc/borgmatic/excludes.bak
-fi
-for i in $(</etc/borgmatic/excludes.src); do
+  fi
+  for i in $(</etc/borgmatic/excludes.src); do
 	case $i in
 	*\** | *\?* )
 		echo $i >> /etc/borgmatic/excludes
@@ -36,7 +37,8 @@ for i in $(</etc/borgmatic/excludes.src); do
 		echo $i >> /etc/borgmatic/excludes
 		;;
 	esac
-done
+  done
+fi
 
 # If we are using yaml format, then update the yaml
 if [[ -f /etc/borgmatic/config.yaml ]]; then
