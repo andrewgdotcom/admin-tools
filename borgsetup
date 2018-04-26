@@ -183,7 +183,7 @@ fi
 
 service cron reload
 
-if [[ -x /usr/bin/pg_dumpall ]]; then
+if [[ -x /usr/bin/pg_dumpall && -d /run/postgresql ]]; then
 	touch /var/backups/postgres && chown postgres /var/backups/postgres
 fi
 
@@ -252,6 +252,14 @@ for i in \$(</etc/borgmatic/excludes.src); do
 		;;
 	esac
 done
+
+# If we have already been upgraded to yaml format, then rewrite the yaml
+if [[ -f /etc/borgmatic/config.yaml ]]; then
+    mv /etc/borgmatic/config.yaml{,.bak}
+    perl -pe "if(/^\s+exclude_patterns:/) {print; last;}" /etc/borgmatic/config.yaml.bak > /etc/borgmatic/config.yaml
+    perl -pe "s/^(.*)$/        - '\1'/" /etc/borgmatic/excludes >> /etc/borgmatic/config.yaml
+    perl -e "while(<>) {last if /^\s+exclude_patterns:/}; while(<>) {if(/^$/){print;last;}}; while(<>) {print;}" /etc/borgmatic/config.yaml.bak >> /etc/borgmatic/config.yaml
+fi
 EOF
 chmod +x /etc/borgmatic/build-excludes
 
