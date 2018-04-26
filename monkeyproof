@@ -118,19 +118,45 @@ if egrep '^\s*AuthorizedKeysFile\s+%h/.ssh/authorized_keys\s+/var/lib/monkeysphe
 elif egrep '^\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
 	# If there exists a working AuthorizedKeysFile line, comment it out and insert above it
 	perl -pi.bak -e 'if(!$done && s!^(\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n#$1!) {$done=1;}' /etc/ssh/sshd_config
-	service $SSH restart
+	ssh_restart=true
 elif egrep '^\s*#+\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
 	# If there exists only a commented out AuthorizedKeysFile, insert above it
 	perl -pi.bak -e 'if(!$done && s!^(\s*#+\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n$1!) {$done=1;}' /etc/ssh/sshd_config
-	service $SSH restart
+	ssh_restart=true
 else
 	# Otherwise append with an explanation
 	cat >> /etc/ssh/sshd_config <<EOF
+
 # Added automatically by monkeyproof script
 # Allow logins with both user-supplied keys and monkeysphere's curated keys
 AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u
 EOF
-	service $SSH restart
+	ssh_restart=true
+fi
+
+# Also fix StreamLocalBindUnlink while we're here
+if egrep '^\s*StreamLocalBindUnlink\s+yes' /etc/ssh/sshd_config; then
+    echo "StreamLocalBindUnlink already enabled"
+elif egrep '^\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
+    # Replace the uncommented StreamLocalBindUnlink line with ours
+    perl -pi.bak -e 'if(!$done && s/^(\s*StreamLocalBindUnlink\s.*)$/StreamLocalBindUnlink yes/) {$done=1;}' /etc/ssh/sshd_config
+    ssh_restart=true
+elif egrep '^\s*#+\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
+    # Replace the first commented StreamLocalBindUnlink line with ours
+    perl -pi.bak -e 'if(!$done && s/^(\s*#+\s*StreamLocalBindUnlink\s.*)$/StreamLocalBindUnlink yes/) {$done=1;}' /etc/ssh/sshd_config
+    ssh_restart=true
+else
+    cat >> /etc/ssh/sshd_config <<EOF
+
+# Added automatically by monkeyproof script
+# Delete forwarded domain sockets once they're no longer required
+StreamLocalBindUnlink yes
+EOF
+    ssh_restart=true
+fi
+
+if [[ $ssh_restart ]]; then
+    service $SSH restart
 fi
 
 # Populate monkeysphere-host database with SSH's RSA key
