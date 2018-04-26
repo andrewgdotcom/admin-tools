@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Directories to back up, space separated
-SOURCE_DIRS="/home /etc /var /srv /usr/local"
-
 # Number of alphanumeric chars in encryption passphrase.
 # 24 should be good enough
 PASSPHRASE_LENGTH=24
@@ -212,119 +209,79 @@ u01
 u02
 EOF
 
-cat > /etc/borgmatic/build-excludes <<EOF
-#!/bin/bash
-set -o noglob
-if [ -f /etc/borgmatic/excludes ]; then
-	mv /etc/borgmatic/excludes /etc/borgmatic/excludes.bak
-fi
-for i in \$(</etc/borgmatic/excludes.src); do
-	case \$i in
-	*\** | *\?* )
-		echo \$i >> /etc/borgmatic/excludes
-		;;
-	/* )
-		# Absolute path found. Canonicalise out soft links
-		# Be tolerant of nonexistent files
-		canonical="\$(readlink -m \$i)"
-		echo \$canonical >> /etc/borgmatic/excludes
-		# Now transit any bind mounts
-		IFS_SAVE="\$IFS"
-		IFS="
-"
-		for tabline in \$(grep -v ^# /etc/fstab); do
-			IFS=\$IFS_SAVE
-			tabwords=(\$tabline)
-			case "\${tabwords[3]}" in
-			bind)
-				target="\${tabwords[0]}"
-				mountpoint="\${tabwords[1]}"
-				subtree="\${canonical#\$mountpoint}"
-				if [ "\$subtree" != "\$canonical" -a "\${subtree:0:1}" = / ]; then
-					echo \$target\$subtree >> /etc/borgmatic/excludes
-				fi
-				;;
-			esac
-		done
-		;;
-	* )
-		echo \$i >> /etc/borgmatic/excludes
-		;;
-	esac
-done
-
-# If we have already been upgraded to yaml format, then rewrite the yaml
-if [[ -f /etc/borgmatic/config.yaml ]]; then
-    mv /etc/borgmatic/config.yaml{,.bak}
-    perl -pe "if(/^\s+exclude_patterns:/) {print; last;}" /etc/borgmatic/config.yaml.bak > /etc/borgmatic/config.yaml
-    perl -pe "s/^(.*)$/        - '\1'/" /etc/borgmatic/excludes >> /etc/borgmatic/config.yaml
-    perl -e "while(<>) {last if /^\s+exclude_patterns:/}; while(<>) {if(/^$/){print;last;}}; while(<>) {print;}" /etc/borgmatic/config.yaml.bak >> /etc/borgmatic/config.yaml
-fi
-EOF
+curl -fsSL -o /etc/borgmatic/build-excludes https://raw.githubusercontent.com/andrewgdotcom/admin-tools/master/borgmatic-build-excludes
 chmod +x /etc/borgmatic/build-excludes
 
-cat > /etc/borgmatic/config <<EOF
-[location]
-# Space-separated list of source directories to backup.
-# Globs are expanded.
-source_directories: $SOURCE_DIRS
+cat > /etc/borgmatic/config.yaml <<EOF
+location:
+    # List of source directories to backup (required). Globs and tildes are expanded.
+    source_directories:
+        - /home
+        - /etc
+        - /var
+        - /srv
+        - /usr/local
 
-# Stay in same file system (do not cross mount points).
-one_file_system: True
+    # Stay in same file system (do not cross mount points).
+    one_file_system: true
 
-# Alternate Borg remote executable (defaults to "borg"):
-#remote_path: borg1
+    # Paths to local or remote repositories (required). Tildes are expanded. Multiple
+    # repositories are backed up to in sequence. See ssh_command for SSH options like
+    # identity file or port.
+    repositories:
+        - $BORG_REPO
 
-# Path to local or remote repository.
-repository: $BORG_REPO
+    # Any paths matching these patterns are excluded from backups. Globs and tildes
+    # are expanded. See the output of "borg help patterns" for more details.
+    exclude_patterns:
+        - '*.pyc'
+        - /home/*/.cache
+        - lost+found
+        - /var/cache
+        - /tmp
+        - /var/tmp
+        - /usr/tmp
+        - /proc
+        - /run
+        - /dev
+        - /sys
 
-[storage]
-# Passphrase to unlock the encryption key with. Only use on repositories that
-# were initialized with passphrase/repokey encryption.
-encryption_passphrase: $BORG_PASSPHRASE
+storage:
+    # Passphrase to unlock the encryption key with. Only use on repositories that were
+    # initialized with passphrase/repokey encryption. Quote the value if it contains
+    # punctuation, so it parses correctly. And backslash any quote or backslash
+    # literals as well.
+    encryption_passphrase: $BORG_PASSPHRASE
 
-# Type of compression to use when creating archives. See
-# https://borgbackup.readthedocs.org/en/stable/usage.html#borg-create
-# for details. Defaults to no compression.
-#compression: lz4
+# At least one of the "keep" options is required for pruning to work.
+retention:
+    # Number of daily archives to keep.
+    keep_daily: 7
 
-# Umask to be used for borg create.
-#umask: 0740
+    # Number of weekly archives to keep.
+    keep_weekly: 4
 
-[retention]
-# Retention policy for how many backups to keep in each category. See
-# https://borgbackup.readthedocs.org/en/stable/usage.html#borg-prune for details.
-#keep_within: 3H
-#keep_hourly: 24
-keep_daily: 7
-keep_weekly: 4
-keep_monthly: 6
-keep_yearly: 1
+    # Number of monthly archives to keep.
+    keep_monthly: 6
 
-#prefix: sourcehostname
+    # Number of yearly archives to keep.
+    keep_yearly: 1
 
-[consistency]
-# Space-separated list of consistency checks to run: "repository", "archives",
-# or both. Defaults to both. Set to "disabled" to disable all consistency
-# checks. See https://borgbackup.readthedocs.org/en/stable/usage.html#borg-check
-# for details.
-checks: repository archives
+consistency:
+    # List of one or more consistency checks to run: "repository", "archives", and/or
+    # "extract". Defaults to "repository" and "archives". Set to "disabled" to disable
+    # all consistency checks. "repository" checks the consistency of the repository,
+    # "archive" checks all of the archives, and "extract" does an extraction dry-run
+    # of just the most recent archive.
+    checks:
+        - repository
+        - archives
 
-# Restrict the number of checked archives to the last n.
-check_last: 3
+    # Restrict the number of checked archives to the last n. Applies only to the "archives" check.
+    check_last: 3
 EOF
 
-
 /etc/borgmatic/build-excludes || exit 10
-
-# Now upgrade from the old config format to yaml
-# TODO: rewrite build-excludes so that it can write yaml natively
-
-if [[ -f /etc/borgmatic/config.yaml ]]; then
-  # Trash this to prevent the upgrade throwing an error
-  rm /etc/borgmatic/config.yaml
-fi
-upgrade-borgmatic-config || exit 11
 
 # Make sure ordinary users can't read our passphrase etc.
 chmod -R o= /etc/borgmatic

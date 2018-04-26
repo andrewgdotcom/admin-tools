@@ -1,0 +1,47 @@
+#!/bin/bash
+set -o noglob
+if [ -f /etc/borgmatic/excludes ]; then
+	mv /etc/borgmatic/excludes /etc/borgmatic/excludes.bak
+fi
+for i in $(</etc/borgmatic/excludes.src); do
+	case $i in
+	*\** | *\?* )
+		echo $i >> /etc/borgmatic/excludes
+		;;
+	/* )
+		# Absolute path found. Canonicalise out soft links
+		# Be tolerant of nonexistent files
+		canonical="$(readlink -m $i)"
+		echo $canonical >> /etc/borgmatic/excludes
+		# Now transit any bind mounts
+		IFS_SAVE="$IFS"
+		IFS="
+"
+		for tabline in $(grep -v ^# /etc/fstab); do
+			IFS=$IFS_SAVE
+			tabwords=($tabline)
+			case "${tabwords[3]}" in
+			bind)
+				target="${tabwords[0]}"
+				mountpoint="${tabwords[1]}"
+				subtree="${canonical#$mountpoint}"
+				if [ "$subtree" != "$canonical" -a "${subtree:0:1}" = / ]; then
+					echo $target$subtree >> /etc/borgmatic/excludes
+				fi
+				;;
+			esac
+		done
+		;;
+	* )
+		echo $i >> /etc/borgmatic/excludes
+		;;
+	esac
+done
+
+# If we are using yaml format, then update the yaml
+if [[ -f /etc/borgmatic/config.yaml ]]; then
+    mv /etc/borgmatic/config.yaml{,.bak}
+    perl -pe "if(/^\s+exclude_patterns:/) {print; last;}" /etc/borgmatic/config.yaml.bak > /etc/borgmatic/config.yaml
+    perl -pe "s/^(.*)$/        - '\1'/" /etc/borgmatic/excludes >> /etc/borgmatic/config.yaml
+    perl -e "while(<>) {last if /^\s+exclude_patterns:/}; while(<>) {if(/^$/){print;last;}}; while(<>) {print;}" /etc/borgmatic/config.yaml.bak >> /etc/borgmatic/config.yaml
+fi
