@@ -112,14 +112,14 @@ chmod +x /etc/cron.hourly/monkeysphere
 
 # Now configure sshd to read the monkeysphere keys
 
-if egrep '^\s*AuthorizedKeysFile\s+%h/.ssh/authorized_keys\s+/var/lib/monkeysphere/authorized_keys/%u\s*$' /etc/ssh/sshd_config; then
+if egrep -q '^\s*AuthorizedKeysFile\s+%h/.ssh/authorized_keys\s+/var/lib/monkeysphere/authorized_keys/%u\s*$' /etc/ssh/sshd_config; then
 	# If we find our own handiwork, do nothing; this is for idempotency
 	echo "SSHD already configured for monkeysphere"
-elif egrep '^\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
+elif egrep -q '^\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
 	# If there exists a working AuthorizedKeysFile line, comment it out and insert above it
 	perl -pi.bak -e 'if(!$done && s!^(\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n#$1!) {$done=1;}' /etc/ssh/sshd_config
 	ssh_restart=true
-elif egrep '^\s*#+\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
+elif egrep -q '^\s*#+\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
 	# If there exists only a commented out AuthorizedKeysFile, insert above it
 	perl -pi.bak -e 'if(!$done && s!^(\s*#+\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n$1!) {$done=1;}' /etc/ssh/sshd_config
 	ssh_restart=true
@@ -135,13 +135,13 @@ EOF
 fi
 
 # Also fix StreamLocalBindUnlink while we're here
-if egrep '^\s*StreamLocalBindUnlink\s+yes' /etc/ssh/sshd_config; then
+if egrep -q '^\s*StreamLocalBindUnlink\s+yes' /etc/ssh/sshd_config; then
     echo "StreamLocalBindUnlink already enabled"
-elif egrep '^\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
+elif egrep -q '^\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
     # Replace the uncommented StreamLocalBindUnlink line with ours
     perl -pi.bak -e 'if(!$done && s/^(\s*StreamLocalBindUnlink\s.*)$/StreamLocalBindUnlink yes/) {$done=1;}' /etc/ssh/sshd_config
     ssh_restart=true
-elif egrep '^\s*#+\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
+elif egrep -q '^\s*#+\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
     # Replace the first commented StreamLocalBindUnlink line with ours
     perl -pi.bak -e 'if(!$done && s/^(\s*#+\s*StreamLocalBindUnlink\s.*)$/StreamLocalBindUnlink yes/) {$done=1;}' /etc/ssh/sshd_config
     ssh_restart=true
