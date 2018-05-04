@@ -281,13 +281,6 @@ consistency:
     check_last: 3
 EOF
 
-/etc/borgmatic/build-excludes || exit 10
-
-# Make sure ordinary users can't read our passphrase etc.
-chmod -R o= /etc/borgmatic
-
-### Fire in the hole. ###
-
 # If using local repos make some sanity checks
 if [[ -z "$REMOTE_HOST" ]]; then
 	# Make sure the location exists
@@ -295,8 +288,15 @@ if [[ -z "$REMOTE_HOST" ]]; then
 		mkdir -p "$REPO_LOCATION"
 	fi
 	# Add our repo to the excludes, to prevent recursion
-	echo "$BORG_REPO" >> /etc/borgmatic/excludes
+	echo "$BORG_REPO" >> /etc/borgmatic/excludes.src
 fi
+
+/etc/borgmatic/build-excludes || exit 10
+
+# Make sure ordinary users can't read our passphrase etc.
+chmod -R o= /etc/borgmatic
+
+### Fire in the hole. ###
 
 if [[ "$REMOTE_HOST" ]]; then
 	# Make ourselves a dedicated ssh key with no passphrase
