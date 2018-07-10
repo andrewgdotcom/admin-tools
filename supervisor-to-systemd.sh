@@ -19,7 +19,7 @@ for superconf in $FILES; do
 		perl -ne 's/(^environment=)(.*)$/ $2/ && { $flag=1 }; s/^\s+// || { $flag=0 }; if($flag && /./) {print}' $superconf >$(dirname $directory)/${program}.environment
 	fi
 	
-	cat <<EOF >/etc/systemd/system/multi-user.target.wants/${program}.service
+	cat <<EOF >/etc/systemd/system/${program}.service
 [Unit]
 Description=${program}
 After=network.target auditd.service
@@ -39,6 +39,7 @@ WantedBy=multi-user.target
 Alias=${program}.service
 EOF
 
+	ln -s ../${program}.service /etc/systemd/system/multi-user.target.wants/
 done
 
 systemctl daemon-reload
