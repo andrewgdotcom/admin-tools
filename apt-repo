@@ -66,6 +66,10 @@ EOF
   rm "$GPGKEY_FILE~" || true
   rm $TMPFILE
 
+  # fix permissions
+  chown root:root $GPGKEY_FILE $SOURCES_FILE
+  chmod 644 $GPGKEY_FILE $SOURCES_FILE
+
   ;;
 
 "remove")
