@@ -56,8 +56,8 @@ case "$1" in
   ARCH=$(dpkg --print-architecture)
 
   cat <<EOF >$SOURCES_FILE
-# Created by $0 with: $BASENAME add \"$2\" \"$3\" \"$4\"
-# To clean up use: $BASENAME remove \"$2\"
+# Created by $0 with: $BASENAME add $2 "$3" $4
+# To clean up use: $BASENAME remove $2
 deb [arch=$ARCH signed-by=$GPGKEY_FILE] $REPO_CONFIG
 EOF
 
