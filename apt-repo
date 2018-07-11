@@ -41,7 +41,7 @@ case "$1" in
 "add")
 
   if [[ ! $4 || $5 ]]; then
-    usage()
+    usage
     exit 1
   fi
 
@@ -71,7 +71,7 @@ EOF
 "remove")
 
   if [[ ! $4 || $5 ]]; then
-    usage()
+    usage
     exit 1
   fi
 
@@ -86,7 +86,7 @@ EOF
 
 * )
 
-  usage()
+  usage
   exit 2
   ;;
 
