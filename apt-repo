@@ -28,7 +28,7 @@ EOF
 }
 
 if [[ ! $2 ]]; then
-  usage()
+  usage
   exit 1
 fi
 
