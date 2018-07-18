@@ -21,7 +21,12 @@ fi
 hosts=$(ansible "$inventory" -m command -b -a \
     'perl -e "open(IN, q[-|], q[zerotier-cli status]); while(<IN>) { if(s/^.*200 info ([0-9a-fA-F]+) .*$/$1/){print qq[RESULT;{{ inventory_hostname }};$_]} }"')
 
+IFS_SAVE="$IFS"
+IFS="
+"
 for network in $NETWORKS; do
+    IFS="$IFS_SAVE"
+    network=${network% *}
     for word in $hosts; do
         host=${word#RESULT;}
         if [[ $word == $host ]]; then
@@ -31,7 +36,7 @@ for network in $NETWORKS; do
         hostid=${host#*;}
         curl -XPOST $CURL_ARGS \
             -H "$ZT_TOKEN" \
-            -d '{name: "'$hostname'", config: {authorized: true}}' \
+            -d '{"name": "'$hostname'", "config": {"authorized": true}}' \
             https://my.zerotier.com/api/network/${network}/member/${hostid}
     done
 done
