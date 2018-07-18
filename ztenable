@@ -10,7 +10,9 @@ if [[ ! $ZT_TOKEN_FILE ]]; then
 fi
 . $2
 
-if ! curl $CURL_ARGS -H "$(<$ZT_TOKEN_FILE)" https://my.zerotier.com/api/status|jq .online | grep -q true; then
+ZT_TOKEN=$(sudo cat $ZT_TOKEN_FILE)
+
+if ! curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/status|jq .online | grep -q true; then
     echo "Zerotier is offline. Aborting!"
     exit 1
 fi
@@ -23,8 +25,8 @@ for network in $NETWORKS; do
         hostname=${host%;*}
         hostid=${host#*;}
         curl -XPOST $CURL_ARGS \
-            -H "$(<$ZT_TOKEN_FILE)" \
-            -d "{name: "'$hostname'", config: {authorized: true}}" \
+            -H "$ZT_TOKEN" \
+            -d '{name: "'$hostname'", config: {authorized: true}}' \
             https://my.zerotier.com/api/network/${network}/member/${hostid}
     done
 done
