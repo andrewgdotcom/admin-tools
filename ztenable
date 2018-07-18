@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# A QAD script to enable new zerotier hosts via the zerotier API
+# $1 is the ansible host or group name
+# $2 is the ztsetup config file that was used on each host
+
+CURL_ARGS=-SsfL
+if [[ ! $ZT_TOKEN_FILE ]]; then
+    ZT_TOKEN_FILE=/root/.zerotier-token
+fi
+. $2
+
+if ! curl $CURL_ARGS -H "$(<$ZT_TOKEN_FILE)" https://my.zerotier.com/api/status|jq .online | grep -q true; then
+    echo "Zerotier is offline. Aborting!"
+    exit 1
+fi
+
+hostids=$(ansible "$1" -m command -b -a "zerotier-cli status"|perl -ne 'print if s/^.*200 info ([0-9a-fA-F]+) .*$/$1/')
+
+for network in $NETWORKS; do
+    for host in $hostids; do
+        curl -XPOST $CURL_ARGS -H "$(<$ZT_TOKEN_FILE)" https://my.zerotier.com/api/network/${network}/member/${host}
+    done
+done
