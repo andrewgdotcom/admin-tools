@@ -37,6 +37,6 @@ for network in $NETWORKS; do
         curl -XPOST $CURL_ARGS \
             -H "$ZT_TOKEN" \
             -d '{"name": "'$hostname'", "config": {"authorized": true}}' \
-            https://my.zerotier.com/api/network/${network}/member/${hostid}
+            https://my.zerotier.com/api/network/${network}/member/${hostid} | jq .
     done
 done
