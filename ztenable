@@ -15,10 +15,16 @@ if ! curl $CURL_ARGS -H "$(<$ZT_TOKEN_FILE)" https://my.zerotier.com/api/status|
     exit 1
 fi
 
-hostids=$(ansible "$1" -m command -b -a "zerotier-cli status"|perl -ne 'print if s/^.*200 info ([0-9a-fA-F]+) .*$/$1/')
+hosts=$(ansible "$1" -m command -b -a "zerotier-cli status" | \
+    perl -ne 'if(s/^(.*) . SUCCESS .*$/$1;/){chop; print;}; print if s/^.*200 info ([0-9a-fA-F]+) .*$/$1/')
 
 for network in $NETWORKS; do
-    for host in $hostids; do
-        curl -XPOST $CURL_ARGS -H "$(<$ZT_TOKEN_FILE)" https://my.zerotier.com/api/network/${network}/member/${host}
+    for host in $hosts; do
+        hostname=${host%;*}
+        hostid=${host#*;}
+        curl -XPOST $CURL_ARGS \
+            -H "$(<$ZT_TOKEN_FILE)" \
+            -d "{name: "'$hostname'", config: {authorized: true}}" \
+            https://my.zerotier.com/api/network/${network}/member/${hostid}
     done
 done
