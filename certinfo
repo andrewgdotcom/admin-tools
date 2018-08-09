@@ -80,6 +80,23 @@ pem2json() {
 EOF
 }
 
+parseconn() {
+    local url="$1"
+    local json=()
+    url=${url##https://}
+    url=${url%%/*}
+    if [[ "${url%:*}" == "$url" ]]; then
+        url="$url:443"
+    fi
+    local transcript="$(openssl s_client -showcerts -connect $url </dev/null 2>/dev/null)"
+    local numcerts=$(echo "$transcript" | egrep --count "^-----BEGIN CERTIFICATE-----")
+    for count in $(seq 1 $numcerts); do
+        local output=$(echo "$transcript" | perl -e '$count='$count'; while(<>) { if(/-----BEGIN CERTIFICATE-----/) {$count--}; if($count==0) {print;} }')
+        json=("${json[@]}" "\"cert$count\": $(pem2json "$output")")
+    done
+    echo -n "\"$url\": { \"_type\": \"url\", " $(IFS=, ; echo "${json[*]}") " }"
+}
+
 parsejks() {
     local keystore="$1"
     local json=()
@@ -112,13 +129,7 @@ probe)
     [[ $1 ]] || usage
     json_total=()
     for url in $*; do
-        url=${url##https://}
-        url=${url%%/*}
-        if [[ "${url%:*}" == "$url" ]]; then
-            url="$url:443"
-        fi
-        output="$(openssl s_client -connect $url </dev/null 2>/dev/null)"
-        json_total=("${json_total[@]}" "\"$url\": $(pem2json "$output")")
+        json_total=("${json_total[@]}" "$(parseconn $url)")
     done
     echo "{ " $(IFS=, ; echo "${json_total[*]}") " }"
     ;;
