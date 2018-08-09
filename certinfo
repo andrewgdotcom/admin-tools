@@ -76,7 +76,7 @@ parsejks() {
     local aliases=$(keytool -keystore $keystore -list </dev/null 2>/dev/null|grep -C1 "Certificate fingerprint"|head -1|awk -F, '{print $1}')
     for alias in $aliases; do
         local output=$(keytool -keystore $keystore -exportcert -rfc -alias $alias </dev/null 2>/dev/null)
-        json=("${json[@]}" "\"$alias\":$(pem2json "$output")")
+        json=("${json[@]}" "\"$alias\": $(pem2json "$output")")
     done
     echo -n "\"$keystore\": { \"_type\": \"jks\", " $(IFS=, ; echo "${json[*]}") " }"
 }
@@ -87,7 +87,7 @@ parsepem() {
     local numcerts=$(egrep --count "^-----BEGIN CERTIFICATE-----" $pemfile)
     for count in $(seq 1 $numcerts); do
         local output=$(perl -e '$count='$count'; while(<>) { if(/-----BEGIN CERTIFICATE-----/) {$count--}; if($count==0) {print;} }' < $pemfile)
-        json=("${json[@]}" "\"cert$count\":$(pem2json "$output")")
+        json=("${json[@]}" "\"cert$count\": $(pem2json "$output")")
     done
     echo -n "\"$pemfile\": { \"_type\": \"pem\", " $(IFS=, ; echo "${json[*]}") " }"
 }
@@ -97,12 +97,19 @@ parsepem() {
 case $1 in
 
 probe)
-    [[ $2 ]] || usage
-    url=$2
-    url=${url##https://}
-    url=${url%%/*}
-    output="$(openssl s_client -connect $url </dev/null 2>/dev/null)"
-    echo $(pem2json "$output")|jq
+    shift
+    [[ $1 ]] || usage
+    json_total=()
+    for url in $*; do
+        url=${url##https://}
+        url=${url%%/*}
+        if [[ "${url%:*}" == "$url" ]]; then
+            url="$url:443"
+        fi
+        output="$(openssl s_client -connect $url </dev/null 2>/dev/null)"
+        json_total=("${json_total[@]}" "\"$url\": $(pem2json "$output")")
+    done
+    echo "{ " $(IFS=, ; echo "${json_total[*]}") " }"
     ;;
 
 list)
