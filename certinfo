@@ -14,8 +14,12 @@ Usage: $0 <command> [<options> ...]
 
 Where <command> is one of:
 
-probe <url>
-    Connect to <url> and report back on the certificate chain in use
+probe <url> [<url> ...]
+    Connect to each <url> and list the certificates in use
+
+list <file> [<file> ...]
+    Parse each <file> and list the certificates therein. PEM and JKS formats
+    are supported (and automatically detected).
 EOF
     exit 1
 }
