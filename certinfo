@@ -64,10 +64,12 @@ pem2json() {
     local serial=$(getline "$x509text" "Serial Number:")
     local id=$(getline "$x509text" "X509v3 Subject Key Identifier:")
     local ca=$(getline "$x509text" "X509v3 Authority Key Identifier:")
+    local issuer=$(getline "$x509text" "Issuer:")
     ca="${ca#keyid:}"
     cat <<EOF
 {
 "subject": "$subject",
+"issuer": "$issuer",
 "san": "$san",
 "serial": "$serial",
 "id": "$id",
