@@ -84,27 +84,37 @@ probe)
     ;;
 
 keystore)
-    [[ $2 ]] || usage
-    keystore=$2
-    json=()
-    aliases=$(keytool -keystore $keystore -list </dev/null 2>/dev/null|grep -C1 "Certificate fingerprint"|head -1|awk -F, '{print $1}')
-    for alias in $aliases; do
-        output=$(keytool -keystore $keystore -exportcert -rfc -alias $alias </dev/null 2>/dev/null)
-        json=("${json[@]}" "\"$alias\":$(pem2json "$output")")
+    shift
+    [[ $1 ]] || usage
+    json_total=()
+    for keystore in $*; do
+        json=()
+        aliases=$(keytool -keystore $keystore -list </dev/null 2>/dev/null|grep -C1 "Certificate fingerprint"|head -1|awk -F, '{print $1}')
+        for alias in $aliases; do
+            output=$(keytool -keystore $keystore -exportcert -rfc -alias $alias </dev/null 2>/dev/null)
+            json=("${json[@]}" "\"$alias\":$(pem2json "$output")")
+        done
+        json_subtotal=$(echo "\"$keystore\": { " $(IFS=, ; echo "${json[*]}") " }")
+        json_total=("${json_total[@]}" "$json_subtotal")
     done
-    echo "{ " $(IFS=, ; echo "${json[*]}") " }" | jq
+    echo "{ " $(IFS=, ; echo "${json_total[*]}") " }" | jq
     ;;
 
 pem)
-    [[ $2 ]] || usage
-    pemfile=$2
-    json=()
-    numcerts=$(egrep --count "^-----BEGIN CERTIFICATE-----" $pemfile)
-    for count in $(seq 1 $numcerts); do
-        output=$(perl -e '$count='$count'; while(<>) { if(/-----BEGIN CERTIFICATE-----/) {$count--}; if($count==0) {print;} }' < $pemfile)
-        json=("${json[@]}" "\"cert$count\":$(pem2json "$output")")
+    shift
+    [[ $1 ]] || usage
+    json_total=()
+    for pemfile in $*; do
+        json=()
+        numcerts=$(egrep --count "^-----BEGIN CERTIFICATE-----" $pemfile)
+        for count in $(seq 1 $numcerts); do
+            output=$(perl -e '$count='$count'; while(<>) { if(/-----BEGIN CERTIFICATE-----/) {$count--}; if($count==0) {print;} }' < $pemfile)
+            json=("${json[@]}" "\"cert$count\":$(pem2json "$output")")
+        done
+        json_subtotal=$(echo "\"$pemfile\": { " $(IFS=, ; echo "${json[*]}") " }")
+        json_total=("${json_total[@]}" "$json_subtotal")
     done
-    echo "{ " $(IFS=, ; echo "${json[*]}") " }" | jq
+    echo "{ " $(IFS=, ; echo "${json_total[*]}") " }" | jq
     ;;
 
 *)
