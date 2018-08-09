@@ -1,0 +1,114 @@
+#!/bin/bash
+
+# X509 tooling is shit. keytool is shit. openssl is shit. It's all shit.
+# A shit sandwich, where the bread, the butter and the plate are all made
+# of the foulest fucking catshit imaginable, covered in dogshit sauce in a
+# house made of chickenshit.
+
+# But we still have to deal with the fucking hateful stuff. So here goes.
+# How to make the shittiest fucking tools in the known universe *usable*...
+
+usage() {
+    cat <<EOF
+Usage: $0 <command> [<options> ...]
+
+Where <command> is one of:
+
+probe <url>
+    Connect to <url> and report back on the certificate chain in use
+EOF
+    exit 1
+}
+
+# https://stackoverflow.com/a/3352015/1485960
+trim() {
+    local var="$*"
+    # remove leading whitespace characters
+    var="${var#"${var%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    var="${var%"${var##*[![:space:]]}"}"
+    echo -n "$var"
+}
+
+getline() {
+    local stream="$1"
+    local term="$2"
+    local out=$(echo "$stream" | egrep "$term")
+    out=${out##*"${term}"}
+    echo -n "$out"
+}
+
+getpara() {
+    local stream="$1"
+    local term="$2"
+    local out=$(echo "$stream"|egrep -C1 "$term"|tail -1)
+    out=$(trim $out)
+    echo -n "$out"
+}
+
+# Convert a selection of PEM fields into JSON format
+pem2json() {
+    local x509text=$(echo "$1" | openssl x509 -text)
+    local subject=$(getline "$x509text" "  Subject: ")
+    local end=$(getline "$x509text" "  Not After : ")
+    local start=$(getline "$x509text" "  Not Before: ")
+    local san=$(getpara "$x509text" "X509v3 Subject Alternative Name:")
+    local serial=$(getpara "$x509text" "Serial Number:")
+    local id=$(getpara "$x509text" "X509v3 Subject Key Identifier:")
+    local ca=$(getpara "$x509text" "X509v3 Authority Key Identifier:")
+    ca="${ca#keyid:}"
+    cat <<EOF
+{
+"subject": "$subject",
+"san": "$san",
+"serial": "$serial",
+"id": "$id",
+"ca": "$ca",
+"start": "$start",
+"end": "$end"
+}
+EOF
+}
+
+####
+
+case $1 in
+
+probe)
+    [[ $2 ]] || usage
+    url=$2
+    url=${url##https://}
+    url=${url%%/*}
+    output="$(openssl s_client -connect $url </dev/null 2>/dev/null)"
+    echo $(pem2json "$output")|jq
+    ;;
+
+keystore)
+    [[ $2 ]] || usage
+    keystore=$2
+    json=()
+    aliases=$(keytool -keystore $keystore -list </dev/null 2>/dev/null|grep -C1 "Certificate fingerprint"|head -1|awk -F, '{print $1}')
+    for alias in $aliases; do
+        output=$(keytool -keystore $keystore -exportcert -rfc -alias $alias </dev/null 2>/dev/null)
+        json=("${json[@]}" "\"$alias\":$(pem2json "$output")")
+    done
+    echo "{ " $(IFS=, ; echo "${json[*]}") " }" | jq
+    ;;
+
+pem)
+    [[ $2 ]] || usage
+    pemfile=$2
+    json=()
+    numcerts=$(egrep --count "^-----BEGIN CERTIFICATE-----" $pemfile)
+    for count in $(seq 1 $numcerts); do
+        output=$(perl -e '$count='$count'; while(<>) { if(/-----BEGIN CERTIFICATE-----/) {$count--}; if($count==0) {print;} }' < $pemfile)
+        json=("${json[@]}" "\"cert$count\":$(pem2json "$output")")
+    done
+    echo "{ " $(IFS=, ; echo "${json[*]}") " }" | jq
+    ;;
+
+*)
+    usage
+    ;;
+
+esac
