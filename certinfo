@@ -34,32 +34,36 @@ trim() {
     echo -n "$var"
 }
 
-getline() {
-    local stream="$1"
-    local term="$2"
-    local out=$(echo "$stream" | egrep "$term")
-    out=${out##*"${term}"}
-    echo -n "$out"
-}
-
 getpara() {
     local stream="$1"
     local term="$2"
     local out=$(echo "$stream"|egrep -C1 "$term"|tail -1)
-    out=$(trim $out)
+    out=$(trim "$out")
+    echo -n "$out"
+}
+
+getline() {
+    local stream="$1"
+    local term="$2"
+    local out=$(echo "$stream" | egrep "$term")
+    out=$(trim "${out##*"${term}"}")
+    if [[ ! $out ]]; then
+        # Sometimes x509 prints the value on the next line. Handle it.
+        out=$(getpara "$stream" "$term")
+    fi
     echo -n "$out"
 }
 
 # Convert a selection of PEM fields into JSON format
 pem2json() {
     local x509text=$(echo "$1" | openssl x509 -text)
-    local subject=$(getline "$x509text" "  Subject: ")
-    local end=$(getline "$x509text" "  Not After : ")
-    local start=$(getline "$x509text" "  Not Before: ")
-    local san=$(getpara "$x509text" "X509v3 Subject Alternative Name:")
-    local serial=$(getpara "$x509text" "Serial Number:")
-    local id=$(getpara "$x509text" "X509v3 Subject Key Identifier:")
-    local ca=$(getpara "$x509text" "X509v3 Authority Key Identifier:")
+    local subject=$(getline "$x509text" "  Subject:")
+    local end=$(getline "$x509text" "  Not After :")
+    local start=$(getline "$x509text" "  Not Before:")
+    local san=$(getline "$x509text" "X509v3 Subject Alternative Name:")
+    local serial=$(getline "$x509text" "Serial Number:")
+    local id=$(getline "$x509text" "X509v3 Subject Key Identifier:")
+    local ca=$(getline "$x509text" "X509v3 Authority Key Identifier:")
     ca="${ca#keyid:}"
     cat <<EOF
 {
