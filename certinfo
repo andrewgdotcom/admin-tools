@@ -132,6 +132,8 @@ list)
             json_total=("${json_total[@]}" "$(parsejks $filename)")
         elif egrep -q "^-----BEGIN CERTIFICATE-----" $filename; then
             json_total=("${json_total[@]}" "$(parsepem $filename)")
+        elif egrep -q "^-----BEGIN (ENCRYPTED )?PRIVATE KEY-----" $filename; then
+            json_total=("${json_total[@]}" "\"$filename\": { \"_type\": \"privkey\"}")
         else
             json_total=("${json_total[@]}" "\"$filename\": { \"_type\": \"unknown\"}")
         fi
