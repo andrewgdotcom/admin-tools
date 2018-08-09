@@ -98,11 +98,6 @@ parsepem() {
 
 ####
 
-if jq . </dev/null >/dev/null 2>/dev/null; then
-    JQ=jq
-else
-    JQ=cat
-fi
 
 case $1 in
 
@@ -119,7 +114,7 @@ probe)
         output="$(openssl s_client -connect $url </dev/null 2>/dev/null)"
         json_total=("${json_total[@]}" "\"$url\": $(pem2json "$output")")
     done
-    echo "{ " $(IFS=, ; echo "${json_total[*]}") " }" | $JQ
+    echo "{ " $(IFS=, ; echo "${json_total[*]}") " }"
     ;;
 
 list)
@@ -135,7 +130,7 @@ list)
             json_total=("${json_total[@]}" "\"$filename\": { \"_type\": \"unknown\"}")
         fi
     done
-    echo "{ " $(IFS=, ; echo "${json_total[*]}") " }" | $JQ
+    echo "{ " $(IFS=, ; echo "${json_total[*]}") " }"
     ;;
 
 *)
