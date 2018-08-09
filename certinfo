@@ -130,7 +130,7 @@ list)
     for filename in $*; do
         if file $filename | grep -q "Java KeyStore"; then
             json_total=("${json_total[@]}" "$(parsejks $filename)")
-        elif file $filename | grep -q "PEM"; then
+        elif egrep -q "^-----BEGIN CERTIFICATE-----" $filename; then
             json_total=("${json_total[@]}" "$(parsepem $filename)")
         else
             json_total=("${json_total[@]}" "\"$filename\": { \"_type\": \"unknown\"}")
