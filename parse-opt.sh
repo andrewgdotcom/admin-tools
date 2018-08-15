@@ -14,18 +14,20 @@
 #
 # declare -A PO_LONG_MAP
 # PO_LONG_MAP["output:"]="OUTPUT"
-# PO_LONG_MAP["input:"]="INPUT"
+# PO_LONG_MAP["comment::"]="COMMENT=no comment"
 # PO_LONG_MAP["verbose"]="VERBOSE"
 # --
 #
-# A single colon in the key indicates that a value *must* be provided, and a
-# double colon indicates that a value *may* be provided. Otherwise the option
-# takes no value. This is the standard behaviour of enhanced getopt.
+# A single colon in the key indicates that the command-line option requires a
+# value, and a double colon that a value is optional; otherwise the option
+# takes no value. This is a similar syntax to that of extended getopt, except
+# that each command-line option is treated individually.
 #
 # The map values are the names of the shell variables to which the command-line
 # values will be assigned. If the map value contains an assignment, it defines
 # the default value of the variable when the command line option is provided
 # with no value. Default values must only be used with double-colon keys.
+# NB the default value does not require the use of embedded quote characters.
 #
 # If a no-value option is supplied, the corresponding variable is set to
 # "true". A no-value long option "<OPTION>" implies the existence of a no-value
@@ -47,10 +49,11 @@ __PO__set_var_with_default() {
     __PO__default="${__PO__default#=}"
     # if we have been passed a value, set the variable to it,
     # otherwise to the default (if that was provided)
+    # NB the embedded quotes prevent eval from word-splitting the values
     if [[ $__PO__value ]]; then
-        eval $__PO__variable="$__PO__value"
+        eval $__PO__variable='"$__PO__value"'
     elif [[ $__PO__default ]]; then
-        eval $__PO__variable="$__PO__default"
+        eval $__PO__variable='"$__PO__default"'
     fi
 }
 
