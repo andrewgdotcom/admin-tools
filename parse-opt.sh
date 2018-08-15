@@ -49,7 +49,7 @@ __PO__set_var_with_default() {
     # otherwise to the default (if that was provided)
     if [[ $__PO__value ]]; then
         eval $__PO__variable="$__PO__value"
-    elif [[ $__PO_default ]]; then
+    elif [[ $__PO__default ]]; then
         eval $__PO__variable="$__PO__default"
     fi
 }
