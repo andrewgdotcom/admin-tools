@@ -43,7 +43,8 @@ fi
 __PO__set_var_with_default() {
     local __PO__var_with_default="$1"
     local __PO__value="$2"
-    # split on `=` into variable and default value
+    # split on `=` into variable and default value.
+    # NB we do it the hard way to ensure __PO__default="" if no default given.
     __PO__variable="${__PO__var_with_default%=*}"
     __PO__default="${__PO__var_with_default#${__PO__variable}}"
     __PO__default="${__PO__default#=}"
