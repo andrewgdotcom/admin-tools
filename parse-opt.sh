@@ -162,5 +162,8 @@ __PO__parse_argv() {
     echo set -- "$@"
 }
 
-eval $(__PO__canonicalize_argv "$@" || exit $?)
-eval $(__PO__parse_argv "$@" || exit $?)
+eval $(! __PO__canonicalize_argv "$@")
+[[ ${PIPESTATUS[0]} -ne 0 ]] && exit ${PIPESTATUS[0]}
+
+eval $(! __PO__parse_argv "$@")
+[[ ${PIPESTATUS[0]} -ne 0 ]] && exit ${PIPESTATUS[0]}
