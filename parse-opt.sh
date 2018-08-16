@@ -162,5 +162,5 @@ __PO__parse_argv() {
     echo set -- "$@"
 }
 
-eval $(__PO__canonicalize_argv "$@")
-eval $(__PO__parse_argv "$@")
+eval $(__PO__canonicalize_argv "$@" || exit $?)
+eval $(__PO__parse_argv "$@" || exit $?)
