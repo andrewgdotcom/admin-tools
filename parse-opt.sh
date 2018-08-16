@@ -40,6 +40,7 @@
 ! getopt --test > /dev/null
 if [[ ${PIPESTATUS[0]} -ne 4 ]]; then
     echo "Enhanced getopt not found!" >&2
+    echo "exit 101"
     exit 1
 fi
 
@@ -68,6 +69,7 @@ __PO__canonicalize_argv() {
             "${key%::}" == "${key}" ]]; then
             # sanity failure!
             echo "PANIC: non-optional key '$key' must not have a default value" >&2
+            echo "exit 104"
             exit 4
         fi
     done
@@ -78,6 +80,7 @@ __PO__canonicalize_argv() {
             "${key%::}" == "${key}" ]]; then
             # sanity failure!
             echo "PANIC: non-optional key '$key' must not have a default value" >&2
+            echo "exit 104"
             exit 4
         fi
         if [[ "$key" == "${key%:}" ]]; then
@@ -93,6 +96,7 @@ __PO__canonicalize_argv() {
         -l "$(IFS=,;echo "${!PO_LONG_MAP[*]}","${!inverses[*]}")" \
         --name "$0" -- "$@")
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+        echo "exit 102"
         exit 2
     fi
 
@@ -149,11 +153,13 @@ __PO__parse_argv() {
                     continue 2
                 else
                     echo "PANIC when parsing options, aborting" >&2
+                    echo "exit 103"
                     exit 3
                 fi
             fi
         done
         echo "PANIC when parsing options, aborting" >&2
+        echo "exit 103"
         exit 3
     done
 
@@ -162,8 +168,5 @@ __PO__parse_argv() {
     echo set -- "$@"
 }
 
-eval $(! __PO__canonicalize_argv "$@")
-[[ ${PIPESTATUS[0]} -ne 0 ]] && exit ${PIPESTATUS[0]}
-
-eval $(! __PO__parse_argv "$@")
-[[ ${PIPESTATUS[0]} -ne 0 ]] && exit ${PIPESTATUS[0]}
+eval $(__PO__canonicalize_argv "$@")
+eval $(__PO__parse_argv "$@")

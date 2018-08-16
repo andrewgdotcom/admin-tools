@@ -31,11 +31,11 @@ expected_output['-f --no-force']=",false,,,;"
 expected_output['--no-force -f']=",true,,,;"
 expected_output['--output=- --input "--" ']=",,,-,--;"
 expected_output['--output="A +" --input "a # c" ']=",,,A +,a # c;"
-expected_output['-f -x -d']=",true,,,;-f -x -d"
+#expected_output['-f -x -d']=",true,,,;-f -x -d"
 
 for input in "${!expected_output[@]}"; do
     eval set -- $input
-    . ${SCRIPT_DIR}/../parse-opt.sh 2>/dev/null
+    . ${SCRIPT_DIR}/../parse-opt.sh
     output="$DEBUG,$FORCE,$VERBOSE,$OUTPUT,$INPUT;$*"
     if [[ "$output" != "${expected_output[$input]}" ]]; then
         echo "Failed on '$input'"
