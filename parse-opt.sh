@@ -89,8 +89,8 @@ __PO__canonicalize_argv() {
     # concatenate option hash keys and invoke enhanced getopt on ARGV
     local canonical_args
     ! canonical_args=$(getopt \
-        -o $(IFS="";echo "${!PO_SHORT_MAP[*]}") \
-        -l $(IFS=,;echo "${!PO_LONG_MAP[*]}","${!inverses[*]}") \
+        -o "$(IFS="";echo "${!PO_SHORT_MAP[*]}")" \
+        -l "$(IFS=,;echo "${!PO_LONG_MAP[*]}","${!inverses[*]}")" \
         --name "$0" -- "$@")
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
         exit 2
