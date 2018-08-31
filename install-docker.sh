@@ -42,6 +42,7 @@ if unbound-control status | grep -q "is running ..."; then
 	if [[ $DISABLE_IPTABLES ]] ; then
 		cat > /etc/docker/daemon.json <<EOF
 {
+  "storage-driver": "overlay2",
   "iptables": false,
   "dns": ["172.17.0.1"]
 }
@@ -49,6 +50,7 @@ EOF
 	else
 		cat > /etc/docker/daemon.json <<EOF
 {
+  "storage-driver": "overlay2",
   "dns": ["172.17.0.1"]
 }
 EOF
