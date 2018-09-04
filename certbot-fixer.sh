@@ -3,6 +3,8 @@
 # A QAD script to upgrade from old versions of letsencrypt/certbot to certbot
 # >=0.20 with directory-hooks
 
+set -e
+
 apt update
 if [[ ! apt-cache show certbot | egrep -q "Version: 0.2[0123456789]" ]]; then
     echo "Can't find certbot >=0.23"
@@ -14,28 +16,43 @@ if [[ ! -d /etc/letsencrypt/renewal-hooks/post ]]; then
     exit 1
 fi
 
-rm -rf /usr/local/bin/certbot-auto /usr/local/bin/letsencrypt /usr/local/share/letsencrypt /opt/eff.org
+if which letsencrypt; then
+    if [[ $(readlink $(which letsencrypt)) != "certbot" ]]; then
+        echo "WARNING: /usr/bin/letsencrypt exists and is not a soft link to certbot"
+    fi
+fi
+
+rm -rf /usr/local/bin/certbot-auto /usr/local/bin/letsencrypt /usr/local/share/letsencrypt /opt/eff.org || true
 for i in /etc/cron.{daily,hourly,weekly,monthly}/letsencrypt; do
     mv $i $i.bak
+    echo "Old letsencrypt cron-script moved to $i.bak"
 done
 if [[ -f /etc/cron.d/letsencrypt ]]; then
-    mv /etc/cron.d/letsencrypt /root/letsencrypt.cron
+    mv /etc/cron.d/letsencrypt /root/letsencrypt.cron.bak
+    echo "Old letsencrypt crontab moved to /root/letsencrypt.cron.bak"
+fi
+
+if [[ -f /etc/cron.d/certbot.dpkg-dist ]]; then
+    # apt install must have been unable to update the certbot configfile,
+    # probably because it was manually edited. We'll have none of that here!
+    if [[ -f /etc/cron.d/certbot ]]; then
+        mv /etc/cron.d/certbot /root/certbot.cron.bak
+        echo "Old certbot crontab moved to /root/certbot.cron.bak"
+    fi
+    mv /etc/cron.d/certbot{.dpkg-dist,}
 fi
 
 if which nginx; then
     echo "/sbin/service nginx reload 2>&1 | logger -t certbot" > /etc/letsencrypt/renewal-hooks/post/nginx.sh
     chmod +x /etc/letsencrypt/renewal-hooks/post/nginx.sh
+    echo "Created standard nginx reload post-hook"
 elif which apache2ctl; then
     echo "/sbin/service apache2 reload 2>&1 | logger -t certbot" > /etc/letsencrypt/renewal-hooks/post/apache.sh
     chmod +x /etc/letsencrypt/renewal-hooks/post/apache.sh
+    echo "Created standard apache2 reload post-hook"
 fi
 
-mv /etc/letsencrypt/renewal/post-hook.sh /etc/letsencrypt/renewal-hooks/post/
-
-if [[ -f /etc/cron.d/certbot.dpkg-dist ]]; then
-    mv /etc/cron.d/certbot{.dpkg-dist,}
-fi
-
-if [[ -x /usr/bin/letsencrypt && ! -L /usr/bin/letsencrypt ]]; then
-    echo "WARNING: /usr/bin/letsencrypt exists and is not a soft link to certbot"
+if [[ -f /etc/letsencrypt/renewal/*.sh ]]; then
+    mv /etc/letsencrypt/renewal/*.sh /etc/letsencrypt/renewal-hooks/post/
+    echo "Found post-hooks: " /etc/letsencrypt/renewal-hooks/post/*.sh
 fi
