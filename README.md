@@ -21,10 +21,10 @@ General system administration
 - borgmatic-build-excludes
     Canonicalise the excludes list in a borgmatic config using `readlink -f`
 
-- install-docker.sh
+- install-docker
     DO NOT USE
 
-- install-java8.sh
+- install-java8
     Configure an APT repository for webupd8team and install oracle java8
 
 - multigit
@@ -36,13 +36,13 @@ General system administration
 Quick fixer scripts for badly configured systems
 ------------------------------------------------
 
-- systemd-fixer.sh
+- systemd-fixer
     Canonicalise the soft-link structure under /etc/systemd/system
 
-- supervisor-to-systemd.sh
+- supervisor-to-systemd
     Convert supervisor-driven services to systemd
 
-- certbot-fixer.sh
+- certbot-fixer
     Drag crufty letsencrypt setups up to certbot 0.20 standard
 
 Zerotier handy tools
@@ -73,7 +73,7 @@ User-authentication tools
 - install-pam-ldap
     Install and configure libpam-ldap
 
-- dropbear-monkeysphere.sh
+- dropbear-monkeysphere
     A tool to configure dropbear+monkeysphere to allow remote ssh connections
     during boot. Useful for unlocking crypted volumes at boot time, remotely.
 
