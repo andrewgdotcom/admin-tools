@@ -41,11 +41,11 @@ fi
 rm -rf /usr/local/bin/certbot-auto /usr/local/bin/letsencrypt /usr/local/share/letsencrypt /opt/eff.org || true
 for i in $(ls /etc/cron.{daily,hourly,weekly,monthly}/letsencrypt 2>/dev/null); do
     mv $i $i.bak
-    echo "Old letsencrypt cron-script moved to $i.bak"
+    echo "CHANGE: Old letsencrypt cron-script moved to $i.bak"
 done
 if [[ -f /etc/cron.d/letsencrypt ]]; then
     mv /etc/cron.d/letsencrypt /root/letsencrypt.cron.bak
-    echo "Old letsencrypt crontab moved to /root/letsencrypt.cron.bak"
+    echo "CHANGE: Old letsencrypt crontab moved to /root/letsencrypt.cron.bak"
 fi
 
 if [[ -f /etc/cron.d/certbot.dpkg-dist ]]; then
@@ -53,7 +53,7 @@ if [[ -f /etc/cron.d/certbot.dpkg-dist ]]; then
     # probably because it was manually edited. We'll have none of that here!
     if [[ -f /etc/cron.d/certbot ]]; then
         mv /etc/cron.d/certbot /root/certbot.cron.bak
-        echo "Old certbot crontab moved to /root/certbot.cron.bak"
+        echo "CHANGE: Old certbot crontab moved to /root/certbot.cron.bak"
     fi
     mv /etc/cron.d/certbot{.dpkg-dist,}
 fi
@@ -61,14 +61,14 @@ fi
 if which nginx >/dev/null; then
     echo "/usr/sbin/service nginx reload 2>&1 | logger -t certbot" > /etc/letsencrypt/renewal-hooks/post/nginx.sh
     chmod +x /etc/letsencrypt/renewal-hooks/post/nginx.sh
-    echo "Created standard nginx reload post-hook"
+    echo "CHANGE: Created standard nginx reload post-hook"
 elif which apache2ctl >/dev/null; then
     echo "/usr/sbin/service apache2 reload 2>&1 | logger -t certbot" > /etc/letsencrypt/renewal-hooks/post/apache.sh
     chmod +x /etc/letsencrypt/renewal-hooks/post/apache.sh
-    echo "Created standard apache2 reload post-hook"
+    echo "CHANGE: Created standard apache2 reload post-hook"
 fi
 
-if [[ -f /etc/letsencrypt/renewal/*.sh ]]; then
+if [[ -n $(ls /etc/letsencrypt/renewal/*.sh 2>/dev/null) ]]; then
     mv /etc/letsencrypt/renewal/*.sh /etc/letsencrypt/renewal-hooks/post/
-    echo "Found post-hooks: " /etc/letsencrypt/renewal-hooks/post/*.sh
+    echo "CHANGE: Moved post-hooks to " /etc/letsencrypt/renewal-hooks/post/*.sh
 fi
