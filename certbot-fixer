@@ -7,7 +7,7 @@ set -e
 
 apt update
 if [[ ! apt-cache show certbot | egrep -q "Version: 0.2[0123456789]" ]]; then
-    echo "Can't find certbot >=0.23"
+    echo "Can't find certbot >=0.20"
 fi
 apt install certbot
 
