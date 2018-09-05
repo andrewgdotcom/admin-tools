@@ -59,11 +59,11 @@ if [[ -f /etc/cron.d/certbot.dpkg-dist ]]; then
 fi
 
 if which nginx >/dev/null; then
-    echo "/sbin/service nginx reload 2>&1 | logger -t certbot" > /etc/letsencrypt/renewal-hooks/post/nginx.sh
+    echo "/usr/sbin/service nginx reload 2>&1 | logger -t certbot" > /etc/letsencrypt/renewal-hooks/post/nginx.sh
     chmod +x /etc/letsencrypt/renewal-hooks/post/nginx.sh
     echo "Created standard nginx reload post-hook"
 elif which apache2ctl >/dev/null; then
-    echo "/sbin/service apache2 reload 2>&1 | logger -t certbot" > /etc/letsencrypt/renewal-hooks/post/apache.sh
+    echo "/usr/sbin/service apache2 reload 2>&1 | logger -t certbot" > /etc/letsencrypt/renewal-hooks/post/apache.sh
     chmod +x /etc/letsencrypt/renewal-hooks/post/apache.sh
     echo "Created standard apache2 reload post-hook"
 fi
