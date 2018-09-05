@@ -79,4 +79,4 @@ fi
 for i in /etc/letsencrypt/renewal/*.sh ; do
     mv $i /etc/letsencrypt/renewal-hooks/deploy/50-$(basename $i .sh)
     echo "CHANGE: Moved post-hook to " /etc/letsencrypt/renewal-hooks/deploy/50-$(basename $i .sh)
-fi
+done
