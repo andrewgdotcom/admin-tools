@@ -4,6 +4,7 @@
 # >=0.20 with directory-hooks
 
 set -e
+shopt -s nullglob
 
 if [[ -d /etc/apt ]]; then
 	if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
