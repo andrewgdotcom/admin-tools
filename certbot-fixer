@@ -17,14 +17,14 @@ if [[ ! -d /etc/letsencrypt/renewal-hooks/post ]]; then
     exit 1
 fi
 
-if which letsencrypt; then
+if which letsencrypt >/dev/null ; then
     if [[ $(readlink $(which letsencrypt)) != "certbot" ]]; then
         echo "WARNING: /usr/bin/letsencrypt exists and is not a soft link to certbot"
     fi
 fi
 
 rm -rf /usr/local/bin/certbot-auto /usr/local/bin/letsencrypt /usr/local/share/letsencrypt /opt/eff.org || true
-for i in /etc/cron.{daily,hourly,weekly,monthly}/letsencrypt; do
+for i in $(ls /etc/cron.{daily,hourly,weekly,monthly}/letsencrypt 2>/dev/null); do
     mv $i $i.bak
     echo "Old letsencrypt cron-script moved to $i.bak"
 done
