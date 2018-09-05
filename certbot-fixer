@@ -58,17 +58,25 @@ if [[ -f /etc/cron.d/certbot.dpkg-dist ]]; then
     mv /etc/cron.d/certbot{.dpkg-dist,}
 fi
 
-if which nginx >/dev/null; then
-    echo "/usr/sbin/service nginx reload 2>&1 | logger -t certbot" > /etc/letsencrypt/renewal-hooks/post/nginx.sh
-    chmod +x /etc/letsencrypt/renewal-hooks/post/nginx.sh
-    echo "CHANGE: Created standard nginx reload post-hook"
-elif which apache2ctl >/dev/null; then
-    echo "/usr/sbin/service apache2 reload 2>&1 | logger -t certbot" > /etc/letsencrypt/renewal-hooks/post/apache.sh
-    chmod +x /etc/letsencrypt/renewal-hooks/post/apache.sh
-    echo "CHANGE: Created standard apache2 reload post-hook"
+if [[ ! -x /etc/letsencrypt/renewal-hooks/deploy/50-webservers ]]; then
+    cat <<EOF > /etc/letsencrypt/renewal-hooks/deploy/50-webservers
+#!/bin/bash
+
+set -e
+
+if [[ \$RENEWED_DOMAINS ]]; then
+    for service in apache2 nginx; do
+        if systemctl status \$service | grep -q '(running)'; then
+            service \$service reload >/dev/null
+        fi
+    done
+fi
+EOF
+    chmod +x /etc/letsencrypt/renewal-hooks/deploy/50-webservers
+    echo "CHANGE: Created /etc/letsencrypt/renewal-hooks/deploy/50-webservers"
 fi
 
-if [[ -n $(ls /etc/letsencrypt/renewal/*.sh 2>/dev/null) ]]; then
-    mv /etc/letsencrypt/renewal/*.sh /etc/letsencrypt/renewal-hooks/post/
-    echo "CHANGE: Moved post-hooks to " /etc/letsencrypt/renewal-hooks/post/*.sh
+for i in /etc/letsencrypt/renewal/*.sh ; do
+    mv $i /etc/letsencrypt/renewal-hooks/deploy/50-$(basename $i .sh)
+    echo "CHANGE: Moved post-hook to " /etc/letsencrypt/renewal-hooks/deploy/50-$(basename $i .sh)
 fi
