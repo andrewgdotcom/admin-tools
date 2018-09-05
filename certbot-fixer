@@ -5,16 +5,31 @@
 
 set -e
 
-apt update
-! apt-cache show certbot | egrep -q "Version: 0.2[0123456789]"
-if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-    echo "Can't find certbot >=0.20"
+if [[ -d /etc/apt ]]; then
+	if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
+	  apt-get update
+	fi
+    ! apt-cache show certbot | egrep -q "Version: 0\.[23456789]\d"
+    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+        echo "Can't find certbot >=0.20"
+        exit 1
+    fi
+    apt install certbot
+elif [[ -d /etc/yum ]]; then
+    ! yum list certbot | egrep -q "certbot\.noarch\s+0\.[23456789]\d"
+    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+        echo "Can't find certbot >=0.20"
+        exit 1
+    fi
+    yum install certbot
+else
+    echo "Distribution not supported!"
+    exit 2
 fi
-apt install certbot
 
 if [[ ! -d /etc/letsencrypt/renewal-hooks/post ]]; then
     echo "Certbot did not create hook directory; aborting"
-    exit 1
+    exit 3
 fi
 
 if which letsencrypt >/dev/null ; then
