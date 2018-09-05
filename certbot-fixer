@@ -8,7 +8,7 @@ shopt -s nullglob
 
 if [[ -d /etc/apt ]]; then
 	if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
-	  apt-get update
+	  apt-get update >& /dev/null
 	fi
     ! apt-cache show certbot | egrep -q "Version: 0\.[23456789]\d"
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
