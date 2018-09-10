@@ -1,8 +1,14 @@
 #!/bin/bash
 
 BRANCH=master
+DATA_DIR=/data
 
 SCRIPT_DIR=$(dirname $(readlink -f $0))
+
+# default to disabling iptables
+if [[ ! $DISABLE_IPTABLES ]]; then
+    DISABLE_IPTABLES=true
+fi
 
 if [[ ! -x ${SCRIPT_DIR}/apt-repo ]]; then
     # We are probably inside ansible; let's hope it forwarded our agent!
@@ -22,10 +28,105 @@ apt-get update
 # make sure the installer does not prompt; there's nobody listening
 DEBIAN_FRONTEND=noninteractive apt-get -y install docker-ce
 
-if [[ $NO_DOCKER_NETWORKING ]]; then
-	echo "Not configuring docker networking"
-	exit 0
+service docker stop
+
+DOCKER_HOME=$(getent passwd docker|awk -F: '{print $6}')
+
+# if DATA_DIR exists, move our storage there; it's probably got a lot more room
+if [[ -d "$DATA_DIR" ]]; then
+    if [[ ! -L ${DOCKER_HOME} ]]; then
+        mv ${DOCKER_HOME} ${DATA_DIR}/
+        ln -s ${DATA_DIR}/$(basename ${DOCKER_HOME}) $(dirname ${DOCKER_HOME})
+    fi
 fi
+
+if [[ $NO_DOCKER_NETWORKING ]]; then
+    echo "Not configuring docker networking"
+    [[ $TMPDIR ]] && rm -rf $TMPDIR
+    exit 0
+fi
+
+################
+### FIREWALL ###
+################
+
+perl -pi.bak -e 's/^DEFAULT_FORWARD_POLICY=.*$/DEFAULT_FORWARD_POLICY="ACCEPT"/' /etc/default/ufw
+
+cat >/etc/ufw/sysctl.conf <<EOF
+#
+# Configuration file for setting network variables. Please note these settings
+# override /etc/sysctl.conf and /etc/sysctl.d. If you prefer to use
+# /etc/sysctl.conf, please adjust IPT_SYSCTL in /etc/default/ufw. See
+# Documentation/networking/ip-sysctl.txt in the kernel source code for more
+# information.
+#
+
+# Uncomment this to allow this host to route packets between interfaces
+net/ipv4/ip_forward=1
+net/ipv6/conf/default/forwarding=1
+net/ipv6/conf/all/forwarding=1
+
+# Disable ICMP redirects. ICMP redirects are rarely used but can be used in
+# MITM (man-in-the-middle) attacks. Disabling ICMP may disrupt legitimate
+# traffic to those sites.
+net/ipv4/conf/all/accept_redirects=0
+net/ipv4/conf/default/accept_redirects=0
+net/ipv6/conf/all/accept_redirects=0
+net/ipv6/conf/default/accept_redirects=0
+
+# Ignore bogus ICMP errors
+net/ipv4/icmp_echo_ignore_broadcasts=1
+net/ipv4/icmp_ignore_bogus_error_responses=1
+net/ipv4/icmp_echo_ignore_all=0
+
+# Don't log Martian Packets (impossible addresses)
+# packets
+net/ipv4/conf/all/log_martians=0
+net/ipv4/conf/default/log_martians=0
+
+#net/ipv4/tcp_fin_timeout=30
+#net/ipv4/tcp_keepalive_intvl=1800
+
+# Uncomment this to turn off ipv6 autoconfiguration
+#net/ipv6/conf/default/autoconf=1
+#net/ipv6/conf/all/autoconf=1
+
+# Uncomment this to enable ipv6 privacy addressing
+#net/ipv6/conf/default/use_tempaddr=2
+#net/ipv6/conf/all/use_tempaddr=2
+EOF
+
+if ! grep -q POSTROUTING /etc/ufw/before.rules; then
+  if [[ $DISABLE_IPTABLES == true ]]; then
+    now=$(date +%s%N)
+    cat > /etc/ufw/before.rules.$now <<EOF
+# NAT table rules
+*nat
+:POSTROUTING ACCEPT [0:0]
+
+# Masquerade outgoing traffic coming from the docker subnet
+EOF
+    for interface in $PRIMARY_INTERFACE $ZEROTIER_INTERFACES; do
+        echo "-A POSTROUTING -o $interface -s 172.17.0.0/16 -j MASQUERADE" >> /etc/ufw/before.rules.$now
+    done
+    cat >> /etc/ufw/before.rules.$now <<EOF
+COMMIT
+
+EOF
+
+    cat /etc/ufw/before.rules >> /etc/ufw/before.rules.$now
+    mv /etc/ufw/before.rules{,.bak}
+    mv /etc/ufw/before.rules{.$now,}
+
+    ufw disable && ufw --force enable
+  fi
+fi
+
+ufw allow in on docker0
+
+###############
+### UNBOUND ###
+###############
 
 if unbound-control status | grep -q "is running ..."; then
 
@@ -34,12 +135,14 @@ if unbound-control status | grep -q "is running ..."; then
 
 	if [[ -f /etc/docker/daemon.json ]]; then
 		echo "Docker appears to be already configured. Aborting"
+        exit 1
 	fi
 	if [[ -f /etc/unbound/unbound.conf.d/server.conf ]]; then
 		echo "Unbound appears to be already configured. Aborting"
+        exit 1
 	fi
 
-	if [[ $DISABLE_IPTABLES ]] ; then
+	if [[ $DISABLE_IPTABLES == true ]] ; then
 		cat > /etc/docker/daemon.json <<EOF
 {
   "storage-driver": "overlay2",
@@ -47,53 +150,38 @@ if unbound-control status | grep -q "is running ..."; then
   "dns": ["172.17.0.1"]
 }
 EOF
-	else
+    else # disable-iptables
 		cat > /etc/docker/daemon.json <<EOF
 {
   "storage-driver": "overlay2",
   "dns": ["172.17.0.1"]
 }
 EOF
-	fi
+    fi # disable-iptables
 
-	service docker restart
-
+    # We need to fix unbound to listen on all interfaces, because there is a race
+    # condition between it and docker on startup
 	cat > /etc/unbound/unbound.conf.d/server.conf <<EOF
 # Local server configuration
-# Listen on secure interfaces only - this allows us to be used recursively
+# Listen on all interfaces - this allows us to be used by docker
 
 server:
-	interface: 127.0.0.1
-	interface: 172.17.0.1  # docker
+	interface: 0.0.0.0
 	access-control: 172.17.0.0/16 allow
 	access-control: 127.0.0.0/8 allow
 EOF
 	service unbound restart
 
-fi
+else # unbound-control status
 
-if grep -q '^*nat' /etc/ufw/before.rules; then
-  if [[ $DISABLE_IPTABLES ]]; then
-
-	echo "Re-enabling outgoing firewall rules for docker containers"
-
-	TMP=$(mktemp)
-	cat >$/etc/ufw/before.rules <<EOF
-
-# NAT table rules
-*nat
-:POSTROUTING ACCEPT [0:0]
-
-# Masquerade outgoing traffic coming from the docker subnet
--A POSTROUTING -o !docker0 -s 172.17.0.0/16 -j MASQUERADE
-COMMIT
+    cat > /etc/docker/daemon.json <<EOF
+{
+  "storage-driver": "overlay2"
+}
 EOF
 
-	if [[ $(ufw status | head) == "Status: active" ]]; then
-		ufw disable; yes | ufw enable
-	fi
+fi # unbound-control status
 
-  fi
-fi
+service docker start
 
 [[ $TMPDIR ]] && rm -rf $TMPDIR
