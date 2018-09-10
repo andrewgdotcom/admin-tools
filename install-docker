@@ -146,7 +146,7 @@ chmod +x /etc/cron.daily/clean-images
 ### UNBOUND ###
 ###############
 
-if unbound-control status | grep -q "is running ..."; then
+if unbound-control status | grep -q "is running"; then
 
 	echo "Unbound detected"
 	echo "Attempting to configure docker to use local DNS resolver"
