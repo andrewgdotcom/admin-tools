@@ -3,14 +3,15 @@
 # A version string comparator blatantly stolen from stack overflow
 # https://stackoverflow.com/questions/4023830/how-to-compare-two-strings-in-dot-separated-version-format-in-bash
 
-# Returns 0 for equality, 1 when $1 > $2 and 2 when $1 < $2
+# Exits with code 0 for equality, 1 when $1 > $2 and 2 when $1 < $2
 
 if [[ $1 == $2 ]]
 then
-    return 0
+    exit 0
 fi
-local IFS=.
-local i ver1=($1) ver2=($2)
+IFS=.
+ver1=($1)
+ver2=($2)
 # fill empty fields in ver1 with zeros
 for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
 do
@@ -25,11 +26,11 @@ do
     fi
     if ((10#${ver1[i]} > 10#${ver2[i]}))
     then
-        return 1
+        exit 1
     fi
     if ((10#${ver1[i]} < 10#${ver2[i]}))
     then
-        return 2
+        exit 2
     fi
 done
-return 0
+exit 0
