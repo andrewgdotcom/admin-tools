@@ -28,9 +28,8 @@ else
     exit 2
 fi
 
-if [[ ! -d /etc/letsencrypt/renewal-hooks/post ]]; then
-    echo "Certbot did not create hook directory; aborting"
-    exit 3
+if [[ ! -d /etc/letsencrypt/renewal-hooks/deploy ]]; then
+    mkdir -p /etc/letsencrypt/renewal-hooks/{post,pre,deploy}
 fi
 
 if which letsencrypt >/dev/null ; then
