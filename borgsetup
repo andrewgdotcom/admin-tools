@@ -146,8 +146,18 @@ elif [[ $YUM ]]; then
 	yum -y install borgbackup python34-pip
 fi
 
-if [[ ! -x $BORGMATIC ]]; then
+WHICH=$(which borgmatic 2>/dev/null)
+if [[ ! -x "$BORGMATIC" && -z "$WHICH" ]]; then
 	pip3 install borgmatic
+    WHICH=$(which borgmatic 2>/dev/null)
+    if [[ ! -x "$BORGMATIC" ]]; then
+        if [[ -n "$WHICH" ]]; then
+            BORGMATIC="$WHICH"
+        else
+            echo "Cannot find borgmatic anywhere; aborting."
+            exit 9
+        fi
+    fi
 fi
 
 if [[ ! -d /etc/borgmatic ]]; then
