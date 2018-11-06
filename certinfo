@@ -66,6 +66,10 @@ pem2json() {
     local ca=$(getline "$x509text" "X509v3 Authority Key Identifier:")
     local issuer=$(getline "$x509text" "Issuer:")
     ca="${ca#keyid:}"
+    local expired
+    if [[ $(date +%s --date "$end") -lt $(date +%s) ]]; then
+        expired=" (EXPIRED)"
+    fi
     cat <<EOF
 {
 "subject": "$subject",
@@ -75,7 +79,7 @@ pem2json() {
 "id": "$id",
 "ca": "$ca",
 "start": "$start",
-"end": "$end"
+"end": "$end$expired"
 }
 EOF
 }
