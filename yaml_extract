@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Tool for extracting information from an elasticsearch-style yaml file.
+# Requires yq (the one from python-pip, not the other one)
+
+yaml_expand_forms() {
+    # recursively enumerate all the collapsed forms of a json entity
+    # we leave out the outermost double quotes at each stage, to save time
+    # adding and then re-stripping them at each recursion stage
+    # this means that the final output is missing its outermost double quotes,
+    # so we have to add them afterwards
+    local head=${1%%.*}
+    local tail=${1#*.}
+    if [[ "$tail" != "$1" ]]; then
+        for tail_form in $(yaml_expand_forms $tail); do
+            echo $head'"."'$tail_form
+            echo $head.$tail_form
+        done
+    else
+        echo "$head"
+    fi
+}
+
+yaml_extract() {
+    # perform a recursive tree search for all collapsed forms of the search term
+    local result=null
+    for searchterm in $(yaml_expand_forms "$1"); do
+        # remember to add the double quotes, see expand_forms above
+        result=$(yq '."'$searchterm'"' "$2")
+        if [[ "$result" != null ]]; then
+            # Strip quotes from the value
+            result="${result#\"}"
+            result="${result%\"}"
+            echo $result
+            return
+        fi
+    done
+    echo
+}
+
+yaml_extract "$1" "$2"
