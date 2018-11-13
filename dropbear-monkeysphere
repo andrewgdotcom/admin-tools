@@ -18,33 +18,37 @@ fi
 PORT=2222
 
 if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
-	apt-get update
+    apt-get update
 fi
 apt-get install dropbear-initramfs
 
 # Create a dummy user so that monkeysphere can manage its keys
-adduser --system --disabled-password --disabled-login \
-	--shell /bin/false --home /var/run/dropbear-initramfs \
-	dropbear-initramfs
-ln -s /var/lib/monkeysphere/authorized_keys/dropbear-initramfs /etc/dropbear-initramfs/authorized_keys
+if ! getent passwd dropbear-initramfs; then
+    adduser --system --disabled-password --disabled-login \
+        --shell /bin/false --home /var/run/dropbear-initramfs \
+        dropbear-initramfs
+fi
+
+ln -sf /var/lib/monkeysphere/authorized_keys/dropbear-initramfs /etc/dropbear-initramfs/authorized_keys
 
 echo "Adding the IDs of all users in group ${SUDO} to dropbear-initramfs user"
 if [[ -f /etc/monkeysphere/authorized_user_ids/root ]]; then
     # Add root first, use this to trash stale config
     cat /etc/monkeysphere/authorized_user_ids/root > /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
 else
-    cat >  /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
+    echo > /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
 fi
+chown dropbear-initramfs:root /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
 
 users=$(getent group ${SUDO} | awk -F: '{print $4}')
 IFS_SAVE=$IFS
 IFS=,
 for user in $users; do
-  IFS=$IFS_SAVE
   if [[ -e /etc/monkeysphere/authorized_user_ids/$user ]]; then
     cat /etc/monkeysphere/authorized_user_ids/$user >> /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
   fi
 done
+IFS=$IFS_SAVE
 
 cat <<EOF >/etc/dropbear-initramfs/config
 #
