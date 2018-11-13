@@ -106,7 +106,7 @@ for (( i=0; i<TRIES; i++)); do
   monkeysphere-authentication update-users 2> /dev/null && exit 0
 	sleep 300
 done
-echo "monkeysphere-authentication gave up after $TRIES tries"
+echo "monkeysphere-authentication gave up after \$TRIES tries"
 EOF
 chmod +x /etc/cron.hourly/monkeysphere
 
