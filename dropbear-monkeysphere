@@ -29,8 +29,12 @@ adduser --system --disabled-password --disabled-login \
 ln -s /var/lib/monkeysphere/authorized_keys/dropbear-initramfs /etc/dropbear-initramfs/authorized_keys
 
 echo "Adding the IDs of all users in group ${SUDO} to dropbear-initramfs user"
-# Add root first, use this to trash stale config
-cat /etc/monkeysphere/authorized_user_ids/root > /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
+if [[ -f /etc/monkeysphere/authorized_user_ids/root ]]; then
+    # Add root first, use this to trash stale config
+    cat /etc/monkeysphere/authorized_user_ids/root > /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
+else
+    cat >  /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
+fi
 
 users=$(getent group ${SUDO} | awk -F: '{print $4}')
 IFS_SAVE=$IFS
