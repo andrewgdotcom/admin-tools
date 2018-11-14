@@ -25,7 +25,10 @@ else
 fi
 
 # NETWORKS is a *newline-separated* list of zerotier networks to join
+# Comments are delimited by spaces
 NETWORKS="8056c2e21c000001 world"
+# It can also be comma-separated, with colon-delimited comments
+#NETWORKS="8056c2e21c000001:world"
 
 if [[ -f /etc/ztsetup ]]; then
 	. /etc/ztsetup
@@ -37,6 +40,8 @@ fi
 if [[ $1 ]]; then
     NETWORKS="$1"
 fi
+# canonicalise
+NETWORKS=$(echo "$NETWORKS"|tr ,: $'\n ')
 
 if [[ $APT ]]; then
 
