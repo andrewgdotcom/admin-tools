@@ -24,11 +24,11 @@ else
 	exit -1
 fi
 
-# NETWORKS is a *newline-separated* list of zerotier networks to join
-# Comments are delimited by spaces
-NETWORKS="8056c2e21c000001 world"
-# It can also be comma-separated, with colon-delimited comments
-#NETWORKS="8056c2e21c000001:world"
+# NETWORKS is a comma-separated list of zerotier networks to join
+# Comments are delimited by colons
+NETWORKS="8056c2e21c000001:world"
+# It can also be newline-separated, and/or with space-delimited comments
+#NETWORKS=$'8056c2e21c000001 world\n0000000000000000 nowhere'
 
 if [[ -f /etc/ztsetup ]]; then
 	. /etc/ztsetup
@@ -41,7 +41,7 @@ if [[ $1 ]]; then
     NETWORKS="$1"
 fi
 # canonicalise
-NETWORKS=$(echo "$NETWORKS"|tr ,: $'\n ')
+NETWORKS=$(echo "$NETWORKS"|tr ' ,' ': ')
 
 if [[ $APT ]]; then
 
@@ -93,15 +93,11 @@ while ! zerotier-cli info; do
 	sleep 1
 done
 
-IFS_SAVE="$IFS"
-IFS="
-"
 # auto join the standard networks
 for network in $NETWORKS; do
-	network_id=${network%% *}
+	network_id=${network%%:*}
 	zerotier-cli join $network_id
 done
-IFS=$IFS_SAVE
 
 # and add some useful name resolutions
 if [[ -f /etc/zthosts ]]; then
