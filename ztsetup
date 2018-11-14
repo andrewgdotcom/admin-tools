@@ -34,6 +34,10 @@ if [[ -f ~/.ztsetup ]]; then
 	. ~/.ztsetup
 fi
 
+if [[ $1 ]]; then
+    NETWORKS="$1"
+fi
+
 if [[ $APT ]]; then
 
   # Attempt to autodetect our distribution. This should work for debian and ubuntu
