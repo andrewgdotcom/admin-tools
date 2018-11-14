@@ -1,7 +1,17 @@
 #!/bin/bash
-# 
+#
 # A QAD script to install zerotier and automatically join a list of networks
 # We also optionally update the local /etc/hosts file
+
+SCRIPT_DIR=$(dirname $(readlink -f $0))
+
+if [[ -x $SCRIPT_DIR/apt-repo ]]; then
+    ADMIN_TOOLS=$SCRIPT_DIR
+else
+    tempdir=$(mktemp -d)
+    (cd $tempdir && git clone https://github.com/andrewgdotcom/admin-tools)
+    ADMIN_TOOLS=$tempdir/admin-tools
+fi
 
 if [[ -d /etc/apt ]]; then
 	APT=true
@@ -33,17 +43,21 @@ if [[ $APT ]]; then
   if zerotier-cli info 2>/dev/null; then
 	echo "Already installed"
   else
-	apt-key --keyring /etc/apt/trusted.gpg.d/zerotier.gpg adv --keyserver pool.sks-keyservers.net --recv-key 1657198823E52A61
-	cat > /etc/apt/sources.list.d/zerotier.list <<EOF
+    if [[ -x $SCRIPT_DIR/apt-repo ]]; then
+        $SCRIPT_DIR/apt-repo add "http://download.zerotier.com/debian/$DIST $DIST main" https://zerotier.com/misc/contact@zerotier.com.gpg
+    else
+        apt-key --keyring /etc/apt/trusted.gpg.d/zerotier.gpg adv --keyserver pool.sks-keyservers.net --recv-key 1657198823E52A61
+        cat > /etc/apt/sources.list.d/zerotier.list <<EOF
 deb http://download.zerotier.com/debian/$DIST $DIST main
 EOF
-	apt-get update && apt-get -y install zerotier-one
+    fi
+    apt-get update && apt-get -y install zerotier-one
   fi
 
 elif [[ $YUM ]]; then
 
   DIST=$(yum repolist|grep ^base| awk '{print $2}')
-  
+
   if [[ $DIST == "CentOS-7" || $DIST == "RHEL-7" ]]; then
     URL="https://download.zerotier.com/redhat/el/7"
   else
@@ -85,5 +99,7 @@ if [[ -f /etc/zthosts ]]; then
 	cat /etc/zthosts >> /etc/hosts
 fi
 if [[ -f ~/.zthosts ]]; then
-	cat ~/.zthosts >> /etc/hosts 
+	cat ~/.zthosts >> /etc/hosts
 fi
+
+[[ -n "$tempdir" ]] && rm -rf "$tempdir"
