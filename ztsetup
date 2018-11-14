@@ -43,8 +43,8 @@ if [[ $APT ]]; then
   if zerotier-cli info 2>/dev/null; then
 	echo "Already installed"
   else
-    if [[ -x $SCRIPT_DIR/apt-repo ]]; then
-        $SCRIPT_DIR/apt-repo add "http://download.zerotier.com/debian/$DIST $DIST main" https://zerotier.com/misc/contact@zerotier.com.gpg
+    if [[ -x $ADMIN_TOOLS/apt-repo ]]; then
+        $ADMIN_TOOLS/apt-repo add "http://download.zerotier.com/debian/$DIST $DIST main" https://zerotier.com/misc/contact@zerotier.com.gpg
     else
         apt-key --keyring /etc/apt/trusted.gpg.d/zerotier.gpg adv --keyserver pool.sks-keyservers.net --recv-key 1657198823E52A61
         cat > /etc/apt/sources.list.d/zerotier.list <<EOF
