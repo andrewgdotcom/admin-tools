@@ -76,7 +76,7 @@ EOF
 
 "remove")
 
-  if [[ ! $4 || $5 ]]; then
+  if [[ ! $2 || $3 ]]; then
     usage
     exit 1
   fi
