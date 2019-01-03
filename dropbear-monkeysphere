@@ -40,15 +40,12 @@ else
 fi
 chown dropbear-initramfs:root /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
 
-users=$(getent group ${SUDO} | awk -F: '{print $4}')
-IFS_SAVE=$IFS
-IFS=,
-for user in $users; do
+IFS=, read -ra users <<< "$(getent group ${SUDO} | awk -F: '{print $4}')"
+for user in "${users[@]}"; do
   if [[ -e /etc/monkeysphere/authorized_user_ids/$user ]]; then
     cat /etc/monkeysphere/authorized_user_ids/$user >> /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
   fi
 done
-IFS=$IFS_SAVE
 
 cat <<EOF >/etc/dropbear-initramfs/config
 #
