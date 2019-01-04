@@ -136,7 +136,7 @@ for image in \$(docker images -f 'dangling=true' -q); do
 done
 
 # Belt and braces
-for image in \$(docker image list|grep '^sirensolutions/' | grep '<none>'| grep '(days|weeks?|months?) ago'|awk '{print \$3}'); do
+for image in \$(docker image list|awk '/\\/.*<none>.*(days|weeks?|months?) ago/ {print \$3}'); do
   docker rmi \$image | logger -t clean-images
 done
 EOF
