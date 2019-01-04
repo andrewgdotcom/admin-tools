@@ -7,10 +7,10 @@
 
 # This assumes ufw.
 
-# NETWORKS is a *newline-separated* list of network prefixes that are 
+# NETWORKS is a newline- or comma-separated list of network prefixes that are
 # considered secure and which should have general access.
 
-# WHITELIST is a *newline-separated* list of hosts that are considered
+# WHITELIST is a newline- or comma-separated list of hosts that are considered
 # secure and should have ssh access.
 
 if [[ $(whoami) != "root" ]]; then
@@ -41,9 +41,9 @@ if [[ -f ~/.ztlockdown ]]; then
 	. ~/.ztlockdown
 fi
 
-IFS_SAVE="$IFS"
-IFS="
-"
+# canonicalise
+NETWORKS=$(echo "$NETWORKS"|tr ' ,' '_ ')
+WHITELIST=$(echo "$WHITELIST"|tr ' ,' '_ ')
 
 if [[ $APT ]]; then
   if [ ! -x /usr/sbin/ufw ]; then
@@ -94,7 +94,7 @@ for network in $NETWORKS; do
 
 	network_prefix=${network%% *}
 	network_name=${network#* }
-	
+
 	echo "Adding ${network_prefix} (${network_name})"
 
 	### TODO: use "ufw show added", which is more reliably parseable
@@ -117,7 +117,7 @@ for network in $NETWORKS; do
 			ufw allow from "$network_prefix" comment "($network_name) ${UFW_COMMENT}" || \
 			ufw allow from "$network_prefix" comment "($network_name) ${UFW_COMMENT}"
 			;;
-		* ) 
+		* )
 			ufw allow from "$network_prefix" to "$UFW_TO" comment "($network_name) ${UFW_COMMENT}" || \
 			ufw allow from "$network_prefix" to "$UFW_TO" comment "($network_name) ${UFW_COMMENT}"
 			;;

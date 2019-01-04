@@ -11,6 +11,15 @@ fi
 inventory="$1"
 . "$2"
 
+# NETWORKS is a comma-separated list of zerotier networks to join
+# Comments are delimited by colons
+#NETWORKS="8056c2e21c000001:world"
+# It can also be newline-separated, and/or with space-delimited comments
+#NETWORKS=$'8056c2e21c000001 world\n0000000000000000 nowhere'
+
+# canonicalise format
+NETWORKS=$(echo "$NETWORKS"|tr ' ,' ': ')
+
 ZT_TOKEN=$(sudo cat $ZT_TOKEN_FILE)
 
 if ! curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/status|jq .online | grep -q true; then
@@ -21,22 +30,18 @@ fi
 hosts=$(ansible "$inventory" -m command -b -a \
     'perl -e "open(IN, q[-|], q[zerotier-cli status]); while(<IN>) { if(s/^.*200 info ([0-9a-fA-F]+) .*$/$1/){print qq[RESULT;{{ inventory_hostname }};$_]} }"')
 
-IFS_SAVE="$IFS"
-IFS="
-"
 for network in $NETWORKS; do
-    IFS="$IFS_SAVE"
-    network=${network% *}
+    network_id=${network%%:*}
     for word in $hosts; do
         host=${word#RESULT;}
         if [[ $word == $host ]]; then
             continue
         fi
         hostname=${host%;*}
-        hostid=${host#*;}
+        host_id=${host#*;}
         curl -XPOST $CURL_ARGS \
             -H "$ZT_TOKEN" \
             -d '{"name": "'$hostname'", "config": {"authorized": true}}' \
-            https://my.zerotier.com/api/network/${network}/member/${hostid} | jq .
+            https://my.zerotier.com/api/network/${network_id}/member/${host_id} | jq .
     done
 done
