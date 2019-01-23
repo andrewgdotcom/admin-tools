@@ -72,7 +72,7 @@ if [ ! ${remote_host} ]; then
 fi
 
 # Add the current remote host to the whitelist
-WHITELIST="${remote_host} Autodetected ssh connection
+WHITELIST="${remote_host}_Autodetected_ssh_connection
 ${WHITELIST}"
 
 # Now whitelist our friendly hosts BEFORE enabling ufw. Note that ufw
@@ -80,11 +80,11 @@ ${WHITELIST}"
 # it until after it has been enabled. This is evil and we must beware.
 
 for host in $WHITELIST; do
-	echo "Whitelisting ${host%% *} (${host#* })"
+	echo "Whitelisting ${host%%_*} (${host#*_})"
 
 	### TODO: work out why the first invocation throws "ERROR: problem running"
-	ufw allow to any app $SSH_PROFILE from "${host%% *}" comment "${host#* }" || echo "Retrying in case of CentOS stupidity..."
-	ufw allow to any app $SSH_PROFILE from "${host%% *}" comment "${host#* }" || exit 3
+	ufw allow to any app $SSH_PROFILE from "${host%%_*}" comment "${host#*_}" || echo "Retrying in case of CentOS stupidity..."
+	ufw allow to any app $SSH_PROFILE from "${host%%_*}" comment "${host#*_}" || exit 3
 done
 
 # This is dangerous
@@ -92,8 +92,8 @@ yes | ufw enable
 
 for network in $NETWORKS; do
 
-	network_prefix=${network%% *}
-	network_name=${network#* }
+	network_prefix=${network%%_*}
+	network_name=${network#*_}
 
 	echo "Adding ${network_prefix} (${network_name})"
 
