@@ -15,7 +15,7 @@ if [[ -f /etc/borgmatic/excludes.src ]]; then
 		canonical="$(readlink -m $i)"
 		echo $canonical >> /etc/borgmatic/excludes
 		# Now transit any bind mounts
-		IFS=$'\n' read -d '' -ra fstab <<< "$(grep -v ^# /etc/fstab)"
+		IFS=$'\n' read -d '' -ra fstab <<< "$(grep -v ^# /etc/fstab)" || true
 		for tabline in "${fstab[@]}"; do
 			tabwords=($tabline)
 			case "${tabwords[3]}" in

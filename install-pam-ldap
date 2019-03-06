@@ -59,7 +59,7 @@ elif [[ $YUM ]]; then
 
 fi
 
-IFS=$'\n' read -d '' -ra admin_users_a <<< "$ADMIN_USERS"
+IFS=$'\n' read -d '' -ra admin_users_a <<< "$ADMIN_USERS" || true
 for i in "${admin_users_a[@]}"; do
 	userid="${i%% *}"
 	realname="${i#* }"
