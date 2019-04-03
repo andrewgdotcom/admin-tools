@@ -42,6 +42,11 @@ else
 	exit -1
 fi
 
+if ! yq . </dev/null 2>/dev/null; then
+    echo "yq not installed, aborting"
+    exit -1
+fi
+
 # Override defaults by sourcing config files. These are cumulative!
 if [[ -f /etc/borgsetup ]]; then
 	. /etc/borgsetup
@@ -361,8 +366,12 @@ fi
 # don't have to supply them when using borg by hand.
 cat >> /root/.bashrc <<EOF
 
-export BORG_REPO=$BORG_REPO
-export BORG_PASSPHRASE=$BORG_PASSPHRASE
+. /usr/local/bin/borg-init
+EOF
+
+cat >> /usr/local/bin/borg-init <<EOF
+export BORG_REPO=\$(yq -r .location.repositories[0] </etc/borgmatic/config.yaml)
+export BORG_PASSPHRASE=\$(yq -r .storage.encryption_passphrase </etc/borgmatic/config.yaml)
 EOF
 
 # Dump our info to stdout where e.g. ansible can pick it up
