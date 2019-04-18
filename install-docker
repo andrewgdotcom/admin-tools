@@ -44,7 +44,9 @@ fi
 
 if [[ $NO_DOCKER_NETWORKING ]]; then
     echo "Not configuring docker networking"
-    [[ $TMPDIR ]] && rm -rf $TMPDIR
+    if [[ $TMPDIR ]]; then
+        rm -rf $TMPDIR
+    fi
     exit 0
 fi
 
@@ -202,4 +204,6 @@ fi # unbound-control status
 
 service docker start
 
-[[ $TMPDIR ]] && rm -rf $TMPDIR
+if [[ $TMPDIR ]]; then
+    rm -rf $TMPDIR
+fi
