@@ -40,6 +40,10 @@ if [[ -d "$DATA_DIR" ]]; then
         mv ${DOCKER_HOME} ${DATA_DIR}/
         ln -s ${DATA_DIR}/$(basename ${DOCKER_HOME}) $(dirname ${DOCKER_HOME})
     fi
+    # Soft-linking will break borgmatic excludes; rebuild them
+    if [[ -x /etc/borgmatic/build-excludes ]]; then
+        /etc/borgmatic/build-excludes
+    fi
 fi
 
 if [[ $NO_DOCKER_NETWORKING ]]; then
