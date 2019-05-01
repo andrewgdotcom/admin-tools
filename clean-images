@@ -3,8 +3,8 @@
 # This can be soft-linked under /etc/cron.daily
 
 kill-containers() {
-    for container in $(docker ps -a| awk "/37bac008b925.*Exited/ { print \$1 }"); do
-        docker rm $container
+    for container in $(docker ps -a| awk "/$1.*Exited/ { print \$1 }"); do
+        docker rm $container | logger -t clean-images
     done
 }
 
