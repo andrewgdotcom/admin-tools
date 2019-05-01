@@ -132,22 +132,6 @@ fi
 
 ufw allow in on docker0
 
-# Run daily docker image cleaner job
-cat >/etc/cron.daily/clean-images <<EOF
-#!/bin/bash
-# QAD script to clean up dangling docker images.
-
-for image in \$(docker images -f 'dangling=true' -q); do
-  docker rmi \$image | logger -t clean-images
-done
-
-# Belt and braces
-for image in \$(docker image list|awk '/\\/.*<none>.*(days|weeks?|months?) ago/ {print \$3}'); do
-  docker rmi \$image | logger -t clean-images
-done
-EOF
-chmod +x /etc/cron.daily/clean-images
-
 ###############
 ### UNBOUND ###
 ###############
@@ -206,7 +190,14 @@ EOF
 
 fi # unbound-control status
 
+###############
+### STARTUP ###
+###############
+
 service docker start
+
+# Enable daily docker image cleaner job
+ln -s ${SCRIPT_DIR}/clean-images /etc/cron.daily/
 
 if [[ $TMPDIR ]]; then
     rm -rf $TMPDIR

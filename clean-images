@@ -1,0 +1,20 @@
+#!/bin/bash
+# QAD script to clean up dangling docker images.
+# This can be soft-linked under /etc/cron.daily
+
+kill-containers() {
+    for container in $(docker ps -a| awk "/37bac008b925.*Exited/ { print \$1 }"); do
+        docker rm $container
+    done
+}
+
+for image in $(docker images -f 'dangling=true' -q); do
+    kill-containers $image
+    docker rmi $image | logger -t clean-images
+done
+
+# Belt and braces
+for image in $(docker image list|awk '/\/.*<none>.*(days|weeks?|months?) ago/ {print $3}'); do
+    kill-containers $image
+    docker rmi $image | logger -t clean-images
+done
