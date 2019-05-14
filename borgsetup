@@ -109,31 +109,49 @@ case "$REPO_LOCATION" in
 	;;
 esac
 
-export BORG_PASSPHRASE=$(< /dev/urandom tr -dc A-Za-z0-9 | head -c$PASSPHRASE_LENGTH)
 export BORG_REPO="${REPO_LOCATION}${HOSTNAME}"
 
 if [[ $REMOTE_HOST ]]; then
 
-	if [[ $REMOTE_HOST_KEY ]]; then
-		# Preseed our (and root's!) known_hosts with the remote host key
-		echo "$REMOTE_HOST_KEY" >> ~/.ssh/known_hosts
-		echo "$REMOTE_HOST_KEY" >> /root/.ssh/known_hosts
-	fi
+    if [[ $REMOTE_HOST_KEY ]]; then
+        # Preseed our (and root's!) known_hosts with the remote host key
+        echo "$REMOTE_HOST_KEY" >> ~/.ssh/known_hosts
+        echo "$REMOTE_HOST_KEY" >> /root/.ssh/known_hosts
+    fi
 
-	# Make sure the remote host is usable
-	if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" "echo -n"; then
-		die 99 "Can't run commands on remote host, aborting"
-	fi
+    # Make sure the remote host is usable
+    if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" "echo -n"; then
+        die 99 "Can't run commands on remote host, aborting"
+    fi
 
-	# Sanity check for pre-existing repo
-	if ssh "${REMOTE_USER}@${REMOTE_HOST}" test -d "${REMOTE_DIRECTORY}/${HOSTNAME}"; then
-		die 5 "Repo already exists! Aborting..."
-	fi
+    # Sanity check for pre-existing repo
+    if ssh "${REMOTE_USER}@${REMOTE_HOST}" test -d "${REMOTE_DIRECTORY}/${HOSTNAME}"; then
+        echo "WARNING: Repo already exists. Entering recovery mode..."
+        RECOVERY=true
+    fi
+
+else
+
+    # Sanity check for pre-existing repo
+    if test -d "${BORG_REPO}"; then
+        echo "WARNING: Repo already exists. Entering recovery mode..."
+        RECOVERY=true
+    fi
 
 fi
 
-
-# Put all our fatal errors above this
+if [[ $RECOVERY ]]; then
+    # In recovery mode, we must have a pre-existing configuration
+    if [[ ! $BORG_PASSPHRASE ]]; then
+        die 5 "Recovery mode requires BORG_PASSPHRASE to be set; aborting"
+    fi
+    BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
+    if [[ ! $BORG_KEYFILE ]]; then
+        die 5 "Recovery mode requires a borg keyfile under /root/.config/borg/keys; aborting"
+    fi
+else
+    export BORG_PASSPHRASE=$(< /dev/urandom tr -dc A-Za-z0-9 | head -c$PASSPHRASE_LENGTH)
+fi
 
 if [[ $APT ]]; then
   if [[ ! -x /usr/bin/borg || ! -x /usr/bin/pip3 ]]; then
@@ -152,7 +170,7 @@ fi
 
 WHICH=$(which borgmatic 2>/dev/null)
 if [[ ! -x "$BORGMATIC" && -z "$WHICH" ]]; then
-	pip3 install borgmatic
+    pip3 install borgmatic
     WHICH=$(which borgmatic 2>/dev/null)
     if [[ ! -x "$BORGMATIC" ]]; then
         if [[ -n "$WHICH" ]]; then
@@ -172,19 +190,19 @@ let "RANDHOUR = $RANDOM % 5 + 1"
 let "RANDMIN = $RANDOM % 60"
 
 if [[ -f /usr/local/bin/borg-silencer.pl || -f $SCRIPT_DIR/borg-silencer.pl ]]; then
-  if [[ ! -f /usr/local/bin/borg-silencer.pl ]]; then
-    cp $SCRIPT_DIR/borg-silencer.pl /usr/local/bin/
-    chmod +x /usr/local/bin/borg-silencer.pl
-  fi
-  # We need to escape $PATH so that it is evaluated by cron, not here
-  cat > /etc/cron.d/borgmatic <<EOF
+    if [[ ! -f /usr/local/bin/borg-silencer.pl ]]; then
+        cp $SCRIPT_DIR/borg-silencer.pl /usr/local/bin/
+        chmod +x /usr/local/bin/borg-silencer.pl
+    fi
+    # We need to escape $PATH so that it is evaluated by cron, not here
+    cat > /etc/cron.d/borgmatic <<EOF
 10 0 * * * root test -x /usr/bin/mysqldump && test -d /run/mysqld && mysqldump -A -R -E --single-transaction --add-drop-table --triggers > /var/backups/mysql
 20 0 * * * root test -x /usr/bin/pg_dumpall && test -d /run/postgresql && cd /tmp && sudo -u postgres pg_dumpall > /var/backups/postgres
 $RANDMIN $RANDHOUR * * * root /bin/bash -c "PATH=\$PATH:/usr/local/bin $BORGMATIC > >( /usr/local/bin/borg-silencer.pl 2>&1 ) 2>&1 | logger -t borgmatic"
 EOF
 else
-  # We need to escape $PATH so that it is evaluated by cron, not here
-  cat > /etc/cron.d/borgmatic <<EOF
+    # We need to escape $PATH so that it is evaluated by cron, not here
+    cat > /etc/cron.d/borgmatic <<EOF
 10 0 * * * root test -x /usr/bin/mysqldump && test -d /run/mysqld && mysqldump -A -R -E --single-transaction --add-drop-table --triggers > /var/backups/mysql
 20 0 * * * root test -x /usr/bin/pg_dumpall && test -d /run/postgresql && cd /tmp && sudo -u postgres pg_dumpall > /var/backups/postgres
 $RANDMIN $RANDHOUR * * * root /bin/bash -c "PATH=\$PATH:/usr/local/bin $BORGMATIC | logger -t borgmatic"
@@ -348,15 +366,17 @@ EOF
 	fi
 fi
 
-# We need to su properly to root, otherwise borg makes a mess in our homedir
-# But don't use "su -", because we want to keep our other environment.
-su -c "borg init -e keyfile ${BORG_REPO}" || die 4 "Could not initialise repository"
+if [[ ! $RECOVERY ]]; then
+    # We need to su properly to root, otherwise borg makes a mess in our homedir
+    # But don't use "su -", because we want to keep our other environment.
+    su -c "borg init -e keyfile ${BORG_REPO}" || die 4 "Could not initialise repository"
 
-BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
+    BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
 
-if [[ "$IMMEDIATE_BACKUP" ]]; then
-	# use "su -" this time, because we want to emulate a cronny environment
-	su - -c $BORGMATIC > /tmp/borg-immediate-backup.log 2>&1 &
+    if [[ "$IMMEDIATE_BACKUP" ]]; then
+        # use "su -" this time, because we want to emulate a cronny environment
+        su - -c $BORGMATIC > /tmp/borg-immediate-backup.log 2>&1 &
+    fi
 fi
 
 # If we got this far, it must have worked. Save our settings in .bashrc so we
