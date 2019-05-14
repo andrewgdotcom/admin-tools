@@ -126,7 +126,7 @@ if [[ $REMOTE_HOST ]]; then
 
     # Sanity check for pre-existing repo
     if ssh "${REMOTE_USER}@${REMOTE_HOST}" test -d "${REMOTE_DIRECTORY}/${HOSTNAME}"; then
-        echo "WARNING: Repo already exists. Entering recovery mode..."
+        echo "Repo already exists"
         RECOVERY=true
     fi
 
@@ -134,13 +134,14 @@ else
 
     # Sanity check for pre-existing repo
     if test -d "${BORG_REPO}"; then
-        echo "WARNING: Repo already exists. Entering recovery mode..."
+        echo "Repo already exists"
         RECOVERY=true
     fi
 
 fi
 
 if [[ $RECOVERY ]]; then
+    echo "Entering recovery mode..."
     # In recovery mode, we must have a pre-existing configuration
     if [[ ! $BORG_PASSPHRASE ]]; then
         die 5 "Recovery mode requires BORG_PASSPHRASE to be set; aborting"
@@ -366,7 +367,10 @@ EOF
 	fi
 fi
 
-if [[ ! $RECOVERY ]]; then
+if [[ $RECOVERY ]]; then
+    echo "Testing the repository..."
+    borg list :: > >( /usr/local/bin/borg-silencer.pl 2>&1 ) 2>&1
+else
     # We need to su properly to root, otherwise borg makes a mess in our homedir
     # But don't use "su -", because we want to keep our other environment.
     su -c "borg init -e keyfile ${BORG_REPO}" || die 4 "Could not initialise repository"
