@@ -223,7 +223,7 @@ lost+found
 /var/cache
 /var/lib/mysql
 /var/lib/elasticsearch
-data/nodes
+nodes/*/indices
 jfrog/artifactory/data
 /var/lib/postgresql
 /var/lib/jenkins/workspace
