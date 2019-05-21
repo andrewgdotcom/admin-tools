@@ -1,0 +1,32 @@
+#!/bin/bash
+
+. /usr/local/bin/borg-env
+
+if ! borg --version | grep -q "borg 1.1"; then
+    echo "Borg is too old"
+    exit 1
+fi
+
+lockdir=$(eval echo $(borg list 2>&1 | awk '/FileExistsError/ {print $7}'))
+if grep -q 'lock\.exclusive' <<< $lockdir; then
+    remotehost=${BORG_REPO%%:*}
+    if ! grep -Pq '^\d+@[a-zA-Z0-9_.-]+$' <<< $remotehost; then
+        echo "remotehost $remotehost has unexpected form, aborting"
+        exit 1
+    fi
+
+    borgprocess=$(ps ax|awk '/\/usr\/bin\/python3 \/usr\/bin\/borg/ {print $1}')
+    borgserve=$(ps ax|awk '/borg\ serve/ {print $1}')
+    kill -9 $borgprocess $borgserve
+    ssh $remotehost rm -rf $lockdir
+fi
+
+export BORG_RECREATE_I_KNOW_WHAT_I_AM_DOING=YES
+
+for archive in $(borg list 2>/dev/null | awk '{print $1}'); do
+    if ! grep -Pq '^[a-zA-Z0-9_.-]+-\d+-\d+-\d+T\d+:\d+:\d+\.\d+$' <<< "$archive"; then
+        echo "archive $archive has unexpected name, skipping"
+        continue
+    fi
+    borg recreate --exclude-from /etc/borgmatic/excludes.src ::$archive
+done
