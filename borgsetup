@@ -226,10 +226,10 @@ cat > /etc/borgmatic/excludes.src <<EOF
 */nodes/*/indices
 */jfrog/artifactory/data
 /var/lib/postgresql
-/var/lib/jenkins/workspace
-/var/lib/docker/tmp
-/var/lib/docker/aufs
-/var/lib/docker/containers
+*/jenkins/workspace
+*/docker/tmp
+*/docker/aufs
+*/docker/containers
 /tmp
 /var/tmp
 /usr/tmp
