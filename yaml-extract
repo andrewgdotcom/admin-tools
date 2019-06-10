@@ -3,6 +3,8 @@
 # Tool for extracting information from an elasticsearch-style yaml file.
 # Requires yq (the one from python-pip, not the other one)
 
+set -e
+
 yaml_expand_forms() {
     # recursively enumerate all the collapsed forms of a json entity
     # we leave out the outermost double quotes at each stage, to save time
@@ -23,10 +25,12 @@ yaml_expand_forms() {
 
 yaml_extract() {
     # perform a recursive tree search for all collapsed forms of the search term
+    local key="$1"
+    local file="$2"
     local result=null
-    for searchterm in $(yaml_expand_forms "$1"); do
+    for searchterm in $(yaml_expand_forms "$key"); do
         # remember to add the double quotes, see expand_forms above
-        result=$(yq '."'$searchterm'"' "$2")
+        result=$(yq '."'$searchterm'"' "$file")
         if [[ "$result" != null ]]; then
             # Strip quotes from the value
             result="${result#\"}"
@@ -38,4 +42,25 @@ yaml_extract() {
     echo
 }
 
-yaml_extract "$1" "$2"
+yaml_replace() {
+    # perform a recursive tree search for all collapsed forms of the search term
+    local key=${1%%=*}
+    local value="${1#*=}"
+    local file=$2
+    local result=null
+    for searchterm in $(yaml_expand_forms "$key"); do
+        # remember to add the double quotes, see expand_forms above
+        result=$(yq '."'$searchterm'"' "$file")
+        if [[ "$result" != null ]]; then
+            cp "$file" "${file}.bak"
+            yq -y '."'$searchterm'" |= "'"$value"'"' "${file}.bak" > "$file"
+            return
+        fi
+    done
+}
+
+if [[ $1 == "-r" ]]; then
+    yaml_replace "$2" "$3"
+else
+    yaml_extract "$1" "$2"
+fi
