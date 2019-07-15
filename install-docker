@@ -6,6 +6,8 @@ BRANCH=master
 DATA_DIR=/data
 
 SCRIPT_DIR=$(dirname $(readlink -f $0))
+PRIMARY_INTERFACE=$(route -n | grep ^0.0.0.0 | head -1 | awk '{print $8}')
+ZEROTIER_INTERFACES=$(zerotier-cli listnetworks |grep PRIVATE|awk '{print $8}')
 
 # default to disabling iptables
 if [[ ! $DISABLE_IPTABLES ]]; then
