@@ -30,7 +30,7 @@ fi
 ${SCRIPT_DIR}/apt-repo add docker "https://download.docker.com/linux/ubuntu xenial stable" https://download.docker.com/linux/ubuntu/gpg || true
 apt-get update
 # make sure the installer does not prompt; there's nobody listening
-DEBIAN_FRONTEND=noninteractive apt-get -y install docker-ce
+DEBIAN_FRONTEND=noninteractive apt-get -y install docker-ce docker-compose
 
 service docker stop
 
