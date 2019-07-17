@@ -10,7 +10,7 @@ CONFIG=/etc/rsyncr.conf
 YQ=/usr/local/bin/yq
 
 # If another rsyncr job is running, complain and crash out.
-if ps ax|grep '[/]etc/cron.*/rsyncr' >/dev/null; then
+if ps ax|grep '[l]ogger -t rsyncr' >/dev/null; then
     echo "An rsyncr process is already running; aborting!"
     exit 1
 fi
