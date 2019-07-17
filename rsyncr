@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# A cron job to synchronise filesystems between multiple slaves.
+# Soft link this script under /etc/cron.{daily,hourly,weekly} as appropriate.
+
+set -eo pipefail
+shopt -s nullglob
+
+CONFIG=/etc/rsyncr.conf
+YQ=/usr/local/bin/yq
+
+# If another rsyncr job is running, complain and crash out.
+if ps ax|grep '[/]etc/cron.*/rsyncr' >/dev/null; then
+    echo "An rsyncr process is already running; aborting!"
+    exit 1
+fi
+
+# Only run if we are the designated master. This allows us to sync our own
+# configuration.
+master=$($YQ -r ".master" < $CONFIG)
+[[ "$master" == $(hostname --fqdn) ]] || exit 0
+
+slaves=($($YQ -r ".slaves|.[]" < $CONFIG))
+includes=($($YQ -r ".includes|.[]" < $CONFIG))
+excludes=($($YQ -r ".excludes|.[]" < $CONFIG))
+sshkey=$($YQ -r ".sshkey" < $CONFIG)
+
+exclude_flags=()
+for exclude in "${excludes[@]}"; do
+    exclude_flags=("${exclude_flags[@]}" "--exclude" "$exclude")
+done
+
+# Also sync our own configuration, including ssh keys
+includes=("${includes[@]}" "$CONFIG" "$sshkey" "$sshkey.pub")
+
+# fire in the hole
+
+cd /
+for slave in $slaves; do
+    rsync -a --relative -e "ssh -i $sshkey" \
+        "${exclude_flags[@]}" "${includes[@]}" \
+        ${slave}:/ 2>&1 | logger -t rsyncr
+done
