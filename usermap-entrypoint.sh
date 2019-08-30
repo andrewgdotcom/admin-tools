@@ -13,8 +13,8 @@
 
 ### DEFAULTS ###
 
-[[ $MAP_USER ]] || MAP_USER=$(getent passwd |awk -F: '$3==1000 {print $1}')
-[[ $MAP_GROUP ]] || MAP_GROUP=$(groups $MAP_USER|awk '{print $3}')
+[[ $MAP_USER ]] || MAP_USER=$(getent passwd | awk -F: '$3==1000 {print $1}')
+[[ $MAP_GROUP ]] || MAP_GROUP=$(groups "$MAP_USER" | awk '{print $3}')
 [[ $NEW_UID ]] || NEW_UID=65534
 [[ $NEW_GID ]] || NEW_GID=65534
 # The location of the real entrypoint
@@ -22,13 +22,13 @@
 
 ###
 
-OLD_UID=$(id -u $MAP_USER)
-OLD_GID=$(getent group|awk -F: '/^'"$MAP_GROUP"'/ {print $3}')
+OLD_UID=$(getent passwd "$MAP_USER" | awk -F: '{print $3}')
+OLD_GID=$(getent group "$MAP_GROUP" | awk -F: '{print $3}')
 
-groupmod --gid $NEW_GID $MAP_GROUP
-usermod --uid $NEW_UID --gid $NEW_GID $MAP_USER
+groupmod --gid "$NEW_GID" "$MAP_GROUP"
+usermod --uid "$NEW_UID" --gid "$NEW_GID" "$MAP_USER"
 
-find / -uid $OLD_UID -exec chown $NEW_UID {} \;
-find / -gid $OLD_GID -exec chgrp $NEW_GID {} \;
+find / -uid "$OLD_UID" -exec chown "$NEW_UID" {} \;
+find / -gid "$OLD_GID" -exec chgrp "$NEW_GID" {} \;
 
-runuser -u $MAP_USER $ENTRYPOINT
+runuser -u "$MAP_USER" "$ENTRYPOINT"
