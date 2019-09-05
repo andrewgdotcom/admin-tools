@@ -2,6 +2,7 @@
 
 # A QAD script to manually invoke an arbitrary git hook at a remote repo.
 # The hook invoked depends on the name by which it is called.
+# Stolen from https://stackoverflow.com/a/48174609
 
 usage() {
     cat <<EOF >&2
