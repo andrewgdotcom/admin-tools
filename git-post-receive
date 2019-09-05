@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# A QAD script to manually invoke an arbitrary git hook at a remote repo.
+# The hook invoked depends on the name by which it is called.
+
+usage() {
+    cat <<EOF >&2
+Usage: $0 <remote> <branch>
+EOF
+    exit 1
+}
+
+self=$(basename "$0")
+hook="${self#git-}"
+remote="${1:-origin}"
+branch="$2"
+
+[[ $2 ]] || usage
+
+urlComponents=( $(git remote get-url "$remote" | tr ':' ' ') )
+ssh "${urlComponents[0]}" bash -c "${urlComponents[1]}/hooks/$hook <<< '0 0 $branch'"
