@@ -144,7 +144,7 @@ if [[ $RECOVERY ]]; then
     echo "Entering recovery mode..."
     # In recovery mode, we must have a pre-existing configuration
     if [[ ! $BORG_PASSPHRASE ]]; then
-        BORG_PASSPHRASE=$(yq -r .storage.encryption_passphrase </etc/borgmatic/config.yaml)
+        export BORG_PASSPHRASE=$(yq -r .storage.encryption_passphrase </etc/borgmatic/config.yaml)
         [[ $BORG_PASSPHRASE ]] || die 5 "Recovery mode requires BORG_PASSPHRASE to be set; aborting"
     fi
     BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
