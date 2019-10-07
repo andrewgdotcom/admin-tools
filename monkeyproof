@@ -2,6 +2,8 @@
 # Quick and dirty script to configure monkeysphere and pam-ssh-agent-auth
 # It *should* be idempotent...
 
+set -eo pipefail
+
 if [[ -d /etc/apt ]]; then
 	APT=true
 	SUDO=sudo

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eo pipefail
+
 # Number of alphanumeric chars in encryption passphrase.
 # 24 should be good enough
 PASSPHRASE_LENGTH=24

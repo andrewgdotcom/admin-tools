@@ -4,6 +4,8 @@
 # $1 is the ansible host or group name
 # $2 is the ztsetup config file that was used on each host
 
+set -eo pipefail
+
 CURL_ARGS=-SsfL
 if [[ ! $ZT_TOKEN_FILE ]]; then
     ZT_TOKEN_FILE=/root/.zerotier-token

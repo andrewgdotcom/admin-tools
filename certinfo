@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eo pipefail
+
 # X509 tooling is shit. keytool is shit. openssl is shit. It's all shit.
 # A shit sandwich, where the bread, the butter and the plate are all made
 # of the foulest fucking catshit imaginable, covered in dogshit sauce in a

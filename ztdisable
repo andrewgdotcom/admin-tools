@@ -3,6 +3,8 @@
 # A QAD script to disable zerotier hosts via the zerotier API
 # $1 is the ansible host or group name
 
+set -eo pipefail
+
 CURL_ARGS=-SsfL
 if [[ ! $ZT_TOKEN_FILE ]]; then
     ZT_TOKEN_FILE=/root/.zerotier-token

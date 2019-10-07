@@ -1,11 +1,13 @@
 #!/bin/bash
 #
-# A script to bulk create users using pubkey-only auth. 
+# A script to bulk create users using pubkey-only auth.
 #
 # If a file ./pubkeys/$user exists, use it to populate the authorized_keys.
 # If /etc/security/authorized_keys exists, put the pubkey in here (and if
 # monkeysphere is installed, refresh its live config). Otherwise, put it in
 # ~/.ssh/authorized_keys
+
+set -eo pipefail
 
 WHEEL=wheel
 DEBIAN=
@@ -34,7 +36,7 @@ if [ -d /etc/security/authorized_keys ]; then
 			perl -pi.bak -e 's/\s+nullok(_secure)?\s+/ /' $file
 		fi
 	done
-	if [ -n $DEBIAN ]; then 
+	if [ -n $DEBIAN ]; then
 		# Regenerate pam config from updated template
 		pam-auth-update --force
 	fi

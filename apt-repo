@@ -32,6 +32,11 @@ if [[ ! $2 ]]; then
   exit 1
 fi
 
+if ! which curl >&/dev/null; then
+    echo "This utility requires curl"
+    exit 1
+fi
+
 REPO_NAME="$2"
 SOURCES_FILE="$SOURCES_DIR/$REPO_NAME".list
 GPGKEY_FILE="$SOURCES_DIR/.$REPO_NAME".gpg
