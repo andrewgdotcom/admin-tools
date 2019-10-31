@@ -89,6 +89,9 @@ for host in $WHITELIST; do
 	ufw allow to any app $SSH_PROFILE from "${host%%_*}" comment "${host#*_}" || exit 3
 done
 
+# Also whitelist incoming packets on the standard zerotier port.
+ufw allow to any port 9993 comment zerotier
+
 # This is dangerous
 yes | ufw enable
 
