@@ -93,7 +93,7 @@ done
 ufw allow to any port 9993 comment zerotier
 
 # This is dangerous
-yes | ufw enable
+ufw enable <<< y
 
 for network in $NETWORKS; do
 
