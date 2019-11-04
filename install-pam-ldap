@@ -67,10 +67,10 @@ for i in "${admin_users_a[@]}"; do
 	realname="${i#* }"
 	if [[ $APT ]]; then
 		# We can and must do this on one line, else we get prompted
-		adduser --disabled-password --gecos "${realname}" $userid
+		getent passwd $userid || adduser --disabled-password --gecos "${realname}" $userid
 	elif [[ $YUM ]]; then
 		# We can't do it on one line, but adduser doesn't complain
-		adduser $userid
+		getent passwd $userid || adduser $userid
 		usermod --lock $userid
 		usermod --comment "${realname}" $userid
 	fi
