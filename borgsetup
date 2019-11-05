@@ -172,10 +172,10 @@ if ! yq . </dev/null 2>/dev/null; then
     pip3 install yq || die 12 "Could not install yq; aborting."
 fi
 
-WHICH=$(which borgmatic 2>/dev/null)
+WHICH=$(which borgmatic 2>/dev/null || true)
 if [[ ! -x "$BORGMATIC" && -z "$WHICH" ]]; then
     pip3 install borgmatic
-    WHICH=$(which borgmatic 2>/dev/null)
+    WHICH=$(which borgmatic 2>/dev/null || true)
     if [[ ! -x "$BORGMATIC" ]]; then
         if [[ -n "$WHICH" ]]; then
             BORGMATIC="$WHICH"
