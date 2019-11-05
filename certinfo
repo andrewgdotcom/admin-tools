@@ -28,7 +28,7 @@ EOF
 
 jsonescape() {
     local input="$*"
-    input=$(perl -pe 's[\\][\\\\];s["][\\"]' <<< $input)
+    input=$(perl -pe 's[\\][\\\\]g;s["][\\"]g' <<< $input)
     echo -n "$input"
 }
 
