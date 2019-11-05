@@ -13,7 +13,7 @@
 # WHITELIST is a newline- or comma-separated list of hosts that are considered
 # secure and should have ssh access.
 
-set -exo pipefail
+set -eo pipefail
 
 if [[ $(whoami) != "root" ]]; then
 	# If we are not root, become root. Non-root invocation is necessary
@@ -103,8 +103,10 @@ for network in $NETWORKS; do
 	echo "Adding ${network_prefix} (${network_name})"
 
 	### TODO: use "ufw show added", which is more reliably parseable
+    ### TODO: why are we doing any of this?
 
-	for i in $(ufw status | grep 'ALLOW\s*Anywhere' | grep -v '(v6)'); do
+#	for i in $(ufw status | grep 'ALLOW\s*Anywhere' | grep -v '(v6)'); do
+    for i in ; do
 		UFW_TO=${i%ALLOW*}
 		j=${i#*ALLOW}
 		UFW_FROM=${j%\#*}
@@ -123,8 +125,8 @@ for network in $NETWORKS; do
 			ufw allow from "$network_prefix" comment "($network_name) ${UFW_COMMENT}"
 			;;
 		* )
-			ufw allow from "$network_prefix" to "$UFW_TO" comment "($network_name) ${UFW_COMMENT}" || \
-			ufw allow from "$network_prefix" to "$UFW_TO" comment "($network_name) ${UFW_COMMENT}"
+			ufw allow from "$network_prefix" to any port "$UFW_TO" comment "($network_name) ${UFW_COMMENT}" || \
+			ufw allow from "$network_prefix" to any port "$UFW_TO" comment "($network_name) ${UFW_COMMENT}"
 			;;
 		esac
 	done
