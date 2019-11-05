@@ -65,14 +65,14 @@ getline() {
 # Convert a selection of PEM fields into JSON format
 pem2json() {
     local x509text=$(echo "$1" | openssl x509 -text)
-    local subject=$(getline "$x509text" "  Subject:")
+    local subject=$(jsonescape $(getline "$x509text" "  Subject:"))
     local end=$(getline "$x509text" "  Not After :")
     local start=$(getline "$x509text" "  Not Before:")
     local san=$(getline "$x509text" "X509v3 Subject Alternative Name:")
     local serial=$(getline "$x509text" "Serial Number:")
     local id=$(getline "$x509text" "X509v3 Subject Key Identifier:")
     local ca=$(getline "$x509text" "X509v3 Authority Key Identifier:")
-    local issuer=$(getline "$x509text" "Issuer:")
+    local issuer=$(jsonescape $(getline "$x509text" "Issuer:"))
     ca="${ca#keyid:}"
     local expired="no"
     if [[ $(date +%s --date "$end") -lt $(date +%s) ]]; then
@@ -80,8 +80,8 @@ pem2json() {
     fi
     cat <<EOF
 {
-"subject": $(jsonescape "$subject"),
-"issuer": $(jsonescape "$issuer"),
+"subject": "$subject",
+"issuer": "$issuer",
 "san": "$san",
 "serial": "$serial",
 "id": "$id",
