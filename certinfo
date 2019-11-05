@@ -26,6 +26,12 @@ EOF
     exit 1
 }
 
+jsonescape() {
+    local input="$*"
+    input=$(perl -pe 's[\\][\\\\];s["][\\"]' <<< $input)
+    echo -n "$input"
+}
+
 # https://stackoverflow.com/a/3352015/1485960
 trim() {
     local var="$*"
@@ -74,8 +80,8 @@ pem2json() {
     fi
     cat <<EOF
 {
-"subject": "$subject",
-"issuer": "$issuer",
+"subject": $(jsonescape "$subject"),
+"issuer": $(jsonescape "$issuer"),
 "san": "$san",
 "serial": "$serial",
 "id": "$id",
