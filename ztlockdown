@@ -13,7 +13,7 @@
 # WHITELIST is a newline- or comma-separated list of hosts that are considered
 # secure and should have ssh access.
 
-set -eo pipefail
+set -exo pipefail
 
 if [[ $(whoami) != "root" ]]; then
 	# If we are not root, become root. Non-root invocation is necessary
