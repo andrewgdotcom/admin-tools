@@ -9,6 +9,11 @@ hostname=$(hostname --fqdn)
 
 apt-get update
 apt-get -f install
+
+if pass | grep -q "Password Store"; then
+    echo "Already configured"
+    exit 0
+fi
 apt-get install -y pass
 
 gpg --generate-key --batch <<EOF
