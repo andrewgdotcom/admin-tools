@@ -16,6 +16,7 @@ if pass | grep -q "Password Store"; then
 fi
 apt-get install -y pass
 
+# https://www.gnupg.org/documentation/manuals/gnupg/Unattended-GPG-key-generation.html
 gpg --generate-key --batch <<EOF
 %no-protection
 Key-Type: rsa
