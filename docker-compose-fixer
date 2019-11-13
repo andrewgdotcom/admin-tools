@@ -29,5 +29,5 @@ Name-Real: $hostname local key
 Expire-Date: 10y
 EOF
 
-keyid=$(gpg -K | awk '/^sec/ {print $2}')
+keyid=$(gpg -K --with-colons | awk -F: '/^sec/ {print $5}')
 pass init ${keyid#*/0x}
