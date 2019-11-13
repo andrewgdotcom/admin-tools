@@ -5,8 +5,24 @@
 
 set -euo pipefail
 
+hostname=$(hostname --fqdn)
+
 apt-get update
+apt-get -f install
 apt-get install -y pass
-gpg --full-generate-key
+
+gpg --generate-key --batch <<EOF
+%no-protection
+Key-Type: rsa
+Key-Length: 2048
+Key-Usage: cert,sign
+Subkey-Type: rsa
+Subkey-Length: 2048
+Subkey-Usage: encrypt
+Passphrase: ""
+Name-Real: $hostname local key
+Expire-Date: 10y
+EOF
+
 keyid=$(gpg -K | awk '/^sec/ {print $2}')
 pass init ${keyid#*/0x}
