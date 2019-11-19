@@ -5,6 +5,11 @@
 
 set -eo pipefail
 
+die() {
+    echo $2 >&2
+    exit $1
+}
+
 CURL_ARGS=-SsfL
 if [[ ! $ZT_TOKEN_FILE ]]; then
     ZT_TOKEN_FILE=/root/.zerotier-token
@@ -14,8 +19,7 @@ inventory="$1"
 ZT_TOKEN=$(sudo cat $ZT_TOKEN_FILE)
 
 if ! curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/status|jq .online | grep -q true; then
-    echo "Zerotier is offline. Aborting!"
-    exit 1
+    die 1 "Zerotier is offline. Aborting!"
 fi
 
 NETWORKS=$(curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/network|jq .|awk '/nwid/ {print $2}'|tr -d '",')
@@ -34,9 +38,11 @@ for network in $NETWORKS; do
         [[ -z $( curl $CURL_ARGS \
             -H "$ZT_TOKEN" \
             https://my.zerotier.com/api/network/${network}/member/${hostid} ) ]] && continue
+        echo "Deauthorizing $host_id ($host) from network $network_id" >&2
         curl -XPOST $CURL_ARGS \
             -H "$ZT_TOKEN" \
             -d '{"config": {"authorized": false}}' \
-            https://my.zerotier.com/api/network/${network}/member/${hostid} | jq .
+            https://my.zerotier.com/api/network/${network}/member/${hostid} | jq . \
+            || die 2 "Could not deauthorize"
     done
 done

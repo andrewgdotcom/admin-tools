@@ -6,6 +6,11 @@
 
 set -eo pipefail
 
+die() {
+    echo $2 >&2
+    exit $1
+}
+
 CURL_ARGS=-SsfL
 if [[ ! $ZT_TOKEN_FILE ]]; then
     ZT_TOKEN_FILE=/root/.zerotier-token
@@ -13,20 +18,15 @@ fi
 inventory="$1"
 . "$2"
 
-# NETWORKS is a comma-separated list of zerotier networks to join
-# Comments are delimited by colons
-#NETWORKS="8056c2e21c000001:world"
-# It can also be newline-separated, and/or with space-delimited comments
-#NETWORKS=$'8056c2e21c000001 world\n0000000000000000 nowhere'
-
 # canonicalise format
 NETWORKS=$(echo "$NETWORKS"|tr ' ,' ': ')
+
+[[ $NETWORKS ]] || die 0 "No networks, nothing to do"
 
 ZT_TOKEN=$(sudo cat $ZT_TOKEN_FILE)
 
 if ! curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/status|jq .online | grep -q true; then
-    echo "Zerotier is offline. Aborting!"
-    exit 1
+    die 1 "Zerotier is offline. Aborting!"
 fi
 
 hosts=$(ansible "$inventory" -m command -b -a \
@@ -41,9 +41,11 @@ for network in $NETWORKS; do
         fi
         hostname=${host%;*}
         host_id=${host#*;}
+        echo "Authorizing $host_id ($host) on network $network_id" >&2
         curl -XPOST $CURL_ARGS \
             -H "$ZT_TOKEN" \
             -d '{"name": "'$hostname'", "config": {"authorized": true}}' \
-            https://my.zerotier.com/api/network/${network_id}/member/${host_id} | jq .
+            https://my.zerotier.com/api/network/${network_id}/member/${host_id} | jq . \
+            || die 2 "Could not authorize"
     done
 done

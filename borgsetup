@@ -32,7 +32,7 @@ REMOTE_DIRECTORY=borg
 SCRIPT_DIR=$(dirname $(readlink -f $0))
 
 die() {
-    echo $2
+    echo $2 >&2
     exit $1
 }
 
