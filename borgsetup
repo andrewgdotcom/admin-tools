@@ -232,6 +232,7 @@ cat > /etc/borgmatic/excludes.src <<EOF
 */jenkins/workspace
 */docker/tmp
 */docker/aufs
+*/docker/overlay2
 */docker/containers
 /tmp
 /var/tmp

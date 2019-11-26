@@ -42,7 +42,8 @@ for network in $NETWORKS; do
         curl -XPOST $CURL_ARGS \
             -H "$ZT_TOKEN" \
             -d '{"config": {"authorized": false}}' \
-            https://my.zerotier.com/api/network/${network}/member/${hostid} | jq . \
+            https://my.zerotier.com/api/network/${network}/member/${hostid} \
+            | jq . \
             || die 2 "Could not deauthorize"
     done
 done
