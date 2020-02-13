@@ -53,7 +53,7 @@ chsh -s /bin/bash monkeysphere
 
 cat > /etc/monkeysphere/monkeysphere.conf <<EOF
 # Use Hagrid
-KEYSERVER=keys.openpgp.net
+KEYSERVER=keys.openpgp.org
 EOF
 
 cat > /etc/monkeysphere/monkeysphere-authentication.conf <<EOF
