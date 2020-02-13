@@ -51,6 +51,11 @@ fi
 # Force a sane login shell no matter what.
 chsh -s /bin/bash monkeysphere
 
+cat > /etc/monkeysphere/monkeysphere.conf <<EOF
+# Use Hagrid
+KEYSERVER=keys.openpgp.net
+EOF
+
 cat > /etc/monkeysphere/monkeysphere-authentication.conf <<EOF
 # Created automatically by monkeyproof script
 # This config prevents privilege escalation when using pam-ssh-agent-auth
