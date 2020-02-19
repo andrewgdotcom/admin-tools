@@ -52,7 +52,7 @@ EOF
 elif [[ $YUM ]]; then
 
   yum -y install nss-pam-ldapd authconfig
-  authconfig --enableldapauth --ldapserver="${LDAP_SERVER_LIST}" --ldapbasedn="${BASE_DN}" --enablerfc2307bis --disableldaptls --update
+  authconfig --enableldapauth --ldapserver="${LDAP_SERVERS}" --ldapbasedn="${BASE_DN}" --enablerfc2307bis --disableldaptls --update
 
   # Unnecessary shit like this is why I use Debian.
   # https://serverfault.com/questions/437546/centos-openldap-cert-trust-issues
