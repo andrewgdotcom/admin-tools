@@ -6,8 +6,4 @@ set -eo pipefail
 
 ssh_connection_array=($SSH_CONNECTION)
 source=${ssh_connection_array[0]}
-if [[ $1 ]]; then
-    source="$1"
-fi
-
-ufw allow to any app OpenSSH from "$source"
+ufw allow to any app OpenSSH from "${1:-$source}"
