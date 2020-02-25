@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# A quick script to explicitly allow ssh connections in from the calling IP
+
+set -eo pipefail
+
+ssh_connection_array=($SSH_CONNECTION)
+source=${ssh_connection_array[0]}
+if [[ $1 ]]; then
+    source="$1"
+fi
+
+ufw allow to any app OpenSSH from "$source"
