@@ -2,7 +2,7 @@
 
 # A quick script to explicitly allow ssh connections in from the calling IP
 
-set -eo pipefail
+set -euo pipefail
 
 ssh_connection_array=($SSH_CONNECTION)
 source=${ssh_connection_array[0]}
