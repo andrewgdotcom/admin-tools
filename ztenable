@@ -48,7 +48,7 @@ for network in $NETWORKS; do
         echo "Authorizing $host_id ($host) on network $network_id" >&2
         curl -XPOST $CURL_ARGS -H "$ZT_TOKEN" \
             -d '{"name": "'$hostname'", "config": {"authorized": true}}' \
-            https://my.zerotier.com/api/network/${network_id}/member/${host_id} \
+            "https://my.zerotier.com/api/network/${network_id}/member/${host_id}" \
             | jq . \
             || die 2 "Could not authorize"
     done
