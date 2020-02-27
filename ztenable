@@ -17,6 +17,9 @@ if [[ ! $ZT_TOKEN_FILE ]]; then
 fi
 inventory="$1"
 . "$2"
+REMOTE_USER="$3"
+
+[[ $REMOTE_USER ]] || REMOTE_USER="$USER"
 
 # canonicalise format
 NETWORKS=$(echo "$NETWORKS"|tr ' ,' ': ')
@@ -31,7 +34,7 @@ if ! curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/status \
     die 1 "Zerotier is offline. Aborting!"
 fi
 
-hosts=$(ansible "$inventory" -m command -b -a \
+hosts=$(ansible "$inventory" -m command -u "$REMOTE_USER" -b -a \
     'perl -e "open(IN, q[-|], q[zerotier-cli status]); while(<IN>) { if(s/^.*200 info ([0-9a-fA-F]+) .*$/$1/){print qq[RESULT;{{ inventory_hostname }};$_]} }"')
 echo "Hosts: $hosts" >&2
 
