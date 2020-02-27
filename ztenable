@@ -22,15 +22,18 @@ inventory="$1"
 NETWORKS=$(echo "$NETWORKS"|tr ' ,' ': ')
 
 [[ $NETWORKS ]] || die 0 "No networks, nothing to do"
+echo "Networks: $NETWORKS" >&2
 
 ZT_TOKEN=$(sudo cat $ZT_TOKEN_FILE)
 
-if ! curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/status|jq .online | grep -q true; then
+if ! curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/status \
+        | jq .online | grep -q true; then
     die 1 "Zerotier is offline. Aborting!"
 fi
 
 hosts=$(ansible "$inventory" -m command -b -a \
     'perl -e "open(IN, q[-|], q[zerotier-cli status]); while(<IN>) { if(s/^.*200 info ([0-9a-fA-F]+) .*$/$1/){print qq[RESULT;{{ inventory_hostname }};$_]} }"')
+echo "Hosts: $hosts" >&2
 
 for network in $NETWORKS; do
     network_id=${network%%:*}
@@ -42,8 +45,7 @@ for network in $NETWORKS; do
         hostname=${host%;*}
         host_id=${host#*;}
         echo "Authorizing $host_id ($host) on network $network_id" >&2
-        curl -XPOST $CURL_ARGS \
-            -H "$ZT_TOKEN" \
+        curl -XPOST $CURL_ARGS -H "$ZT_TOKEN" \
             -d '{"name": "'$hostname'", "config": {"authorized": true}}' \
             https://my.zerotier.com/api/network/${network_id}/member/${host_id} \
             | jq . \
