@@ -41,7 +41,7 @@ if [[ $APT ]]; then
   fi
   apt-get -y install monkeysphere dirmngr
 elif [[ $YUM ]]; then
-  yum -y install monkeysphere
+  yum -y --setopt=skip_missing_names_on_install=False install monkeysphere
 fi
 
 # Monkeysphere in EPEL is broken by default; it sets the user shell to
@@ -213,7 +213,7 @@ EOF
 
 elif [[ $YUM ]]; then
 
-  yum -y install pam_ssh_agent_auth
+  yum -y --setopt=skip_missing_names_on_install=False install pam_ssh_agent_auth
   if ! grep -q pam_ssh_agent_auth.so /etc/pam.d/system-auth; then
     cat <<EOF >/etc/pam.d/system-auth-monkeyproof
 auth       sufficient    pam_ssh_agent_auth.so file=/var/lib/monkeysphere/authorized_keys/%u

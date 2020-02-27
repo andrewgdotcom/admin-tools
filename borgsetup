@@ -165,7 +165,7 @@ if [[ $APT ]]; then
 	apt-get -y install borgbackup python3-pip
   fi
 elif [[ $YUM ]]; then
-	yum -y install borgbackup python34-pip
+	yum -y --setopt=skip_missing_names_on_install=False install borgbackup python34-pip
 fi
 
 if ! yq . </dev/null 2>/dev/null; then

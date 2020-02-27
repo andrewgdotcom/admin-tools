@@ -87,7 +87,7 @@ gpgcheck=1
 gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-ZEROTIER
 EOF
   curl -o /etc/pki/rpm-gpg/RPM-GPG-KEY-ZEROTIER https://download.zerotier.com/contact%40zerotier.com.gpg
-  yum -y install zerotier-one && service zerotier-one start
+  yum -y --setopt=skip_missing_names_on_install=False install zerotier-one && service zerotier-one start
 
 fi
 
