@@ -25,7 +25,6 @@ REMOTE_USER="$3"
 NETWORKS=$(echo "$NETWORKS"|tr ' ,' ': ')
 
 [[ $NETWORKS ]] || die 0 "No networks, nothing to do"
-echo "Networks: $NETWORKS" >&2
 
 ZT_TOKEN=$(sudo cat $ZT_TOKEN_FILE)
 
@@ -36,7 +35,6 @@ fi
 
 hosts=$(ansible "$inventory" -m command -u "$REMOTE_USER" -b -a \
     'perl -e "open(IN, q[-|], q[zerotier-cli status]); while(<IN>) { if(s/^.*200 info ([0-9a-fA-F]+) .*$/$1/){print qq[RESULT;{{ inventory_hostname }};$_]} }"')
-echo "Hosts: $hosts" >&2
 
 for network in $NETWORKS; do
     network_id=${network%%:*}
