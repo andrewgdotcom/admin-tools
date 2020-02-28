@@ -5,6 +5,8 @@
 
 set -e
 
+YQ=/usr/local/bin/yq
+
 yaml_expand_forms() {
     # recursively enumerate all the collapsed forms of a json entity
     # we leave out the outermost double quotes at each stage, to save time
@@ -30,7 +32,7 @@ yaml_extract() {
     local result=null
     for searchterm in $(yaml_expand_forms "$key"); do
         # remember to add the double quotes, see expand_forms above
-        result=$(yq '."'$searchterm'"' "$file")
+        result=$($YQ '."'$searchterm'"' "$file")
         if [[ "$result" != null ]]; then
             # Strip quotes from the value
             result="${result#\"}"
@@ -50,10 +52,10 @@ yaml_replace() {
     local result=null
     for searchterm in $(yaml_expand_forms "$key"); do
         # remember to add the double quotes, see expand_forms above
-        result=$(yq '."'$searchterm'"' "$file")
+        result=$($YQ '."'$searchterm'"' "$file")
         if [[ "$result" != null ]]; then
             cp "$file" "${file}.bak"
-            yq -y '."'$searchterm'" |= "'"$value"'"' "${file}.bak" > "$file"
+            $YQ -y '."'$searchterm'" |= "'"$value"'"' "${file}.bak" > "$file"
             return
         fi
     done

@@ -2,6 +2,8 @@
 
 set -eo pipefail
 
+YQ=/usr/local/bin/yq
+
 # Number of alphanumeric chars in encryption passphrase.
 # 24 should be good enough
 PASSPHRASE_LENGTH=24
@@ -148,7 +150,7 @@ if [[ $RECOVERY ]]; then
     echo "Entering recovery mode..."
     # In recovery mode, we must have a pre-existing configuration
     if [[ ! $BORG_PASSPHRASE ]]; then
-        export BORG_PASSPHRASE=$(yq -r .storage.encryption_passphrase </etc/borgmatic/config.yaml)
+        export BORG_PASSPHRASE=$($YQ -r .storage.encryption_passphrase </etc/borgmatic/config.yaml)
         [[ $BORG_PASSPHRASE ]] || die 5 "Recovery mode requires BORG_PASSPHRASE to be set; aborting"
     fi
     BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
@@ -170,7 +172,7 @@ elif [[ $YUM ]]; then
 	yum -y --setopt=skip_missing_names_on_install=False install borgbackup python34-pip
 fi
 
-if ! yq . </dev/null 2>/dev/null; then
+if ! $YQ . </dev/null 2>/dev/null; then
     pip3 install yq || die 12 "Could not install yq; aborting."
 fi
 
@@ -401,8 +403,8 @@ cat >> /root/.bashrc <<EOF
 EOF
 
 cat >> /usr/local/bin/borg-env <<EOF
-export BORG_REPO=\$(yq -r .location.repositories[0] </etc/borgmatic/config.yaml)
-export BORG_PASSPHRASE=\$(yq -r .storage.encryption_passphrase </etc/borgmatic/config.yaml)
+export BORG_REPO=\$($YQ -r .location.repositories[0] </etc/borgmatic/config.yaml)
+export BORG_PASSPHRASE=\$($YQ -r .storage.encryption_passphrase </etc/borgmatic/config.yaml)
 EOF
 
 # Dump our info to stdout where e.g. ansible can pick it up
