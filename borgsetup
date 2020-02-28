@@ -37,13 +37,15 @@ die() {
 }
 
 if [[ -d /etc/apt ]]; then
-	APT=true
-	SUDO=sudo
-	BORGMATIC=/usr/local/bin/borgmatic
+    APT=true
+    SUDO=sudo
+    BORGMATIC=/usr/local/bin/borgmatic
+    CRON=cron
 elif [[ -d /etc/yum ]]; then
-	YUM=true
-	SUDO=wheel
-	BORGMATIC=/usr/bin/borgmatic
+    YUM=true
+    SUDO=wheel
+    BORGMATIC=/usr/bin/borgmatic
+    CRON=crond
 else
 	die -1 "Distribution not supported!"
 fi
@@ -217,7 +219,7 @@ $RANDMIN $RANDHOUR * * * root /bin/bash -c "PATH=\$PATH:/usr/local/bin $BORGMATI
 EOF
 fi
 
-service cron reload
+service $CRON reload
 
 if [[ -x /usr/bin/pg_dumpall && -d /run/postgresql ]]; then
 	touch /var/backups/postgres && chown postgres /var/backups/postgres
