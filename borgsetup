@@ -172,6 +172,9 @@ if ! yq . </dev/null 2>/dev/null; then
     pip3 install yq || die 12 "Could not install yq; aborting."
 fi
 
+# Temporarily set PATH to be promiscuous so that we can find borgmatic
+PATH_SAVE=$PATH
+PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH
 WHICH=$(which borgmatic 2>/dev/null || true)
 if [[ ! -x "$BORGMATIC" && -z "$WHICH" ]]; then
     pip3 install borgmatic
@@ -184,6 +187,7 @@ if [[ ! -x "$BORGMATIC" && -z "$WHICH" ]]; then
         fi
     fi
 fi
+PATH=$PATH_SAVE
 
 if [[ ! -d /etc/borgmatic ]]; then
 	mkdir /etc/borgmatic
