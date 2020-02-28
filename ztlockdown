@@ -15,6 +15,14 @@
 
 set -eo pipefail
 
+### TODO: why does the first "ufw allow" on CentOS throw "ERROR: problem running"?
+centos_safe_ufw() {
+    ufw $* || (
+        echo "Retrying in case of CentOS stupidity..."
+        ufw $* || exit 3
+    )
+}
+
 if [[ $(whoami) != "root" ]]; then
 	# If we are not root, become root. Non-root invocation is necessary
 	# because most methods of obtaining root reset the environment.
@@ -83,14 +91,11 @@ ${WHITELIST}"
 
 for host in $WHITELIST; do
 	echo "Whitelisting ${host%%_*} (${host#*_})"
-
-	### TODO: work out why the first invocation throws "ERROR: problem running"
-	ufw allow to any app $SSH_PROFILE from "${host%%_*}" comment "${host#*_}" || echo "Retrying in case of CentOS stupidity..."
-	ufw allow to any app $SSH_PROFILE from "${host%%_*}" comment "${host#*_}" || exit 3
+	centos_safe_ufw allow to any app $SSH_PROFILE from "${host%%_*}" comment "${host#*_}"
 done
 
 # Also whitelist incoming packets on the standard zerotier port.
-ufw allow to any port 9993 comment zerotier
+centos_safe_ufw allow to any port 9993 comment zerotier
 
 # This is dangerous
 ufw enable <<< y
@@ -121,19 +126,16 @@ for network in $NETWORKS; do
 			echo -n
 			;;
 		*\ on\ * )
-			ufw allow from "$network_prefix" comment "($network_name) ${UFW_COMMENT}" || \
-			ufw allow from "$network_prefix" comment "($network_name) ${UFW_COMMENT}"
+			centos_safe_ufw allow from "$network_prefix" comment "($network_name) ${UFW_COMMENT}"
 			;;
 		* )
-			ufw allow from "$network_prefix" to any port "$UFW_TO" comment "($network_name) ${UFW_COMMENT}" || \
-			ufw allow from "$network_prefix" to any port "$UFW_TO" comment "($network_name) ${UFW_COMMENT}"
+			centos_safe_ufw allow from "$network_prefix" to any port "$UFW_TO" comment "($network_name) ${UFW_COMMENT}"
 			;;
 		esac
 	done
 
 	# add ssh access anyway
-	ufw allow from "$network_prefix" to any app $SSH_PROFILE comment "($network_name)" || \
-	ufw allow from "$network_prefix" to any app $SSH_PROFILE comment "($network_name)"
+	centos_safe_ufw allow from "$network_prefix" to any app $SSH_PROFILE comment "($network_name)"
 	if [ -d /etc/sshguard ]; then
 		echo "$network_prefix" >> /etc/sshguard/whitelist
 	fi
