@@ -52,8 +52,25 @@ fi
 chsh -s /bin/bash monkeysphere
 
 cat > /etc/monkeysphere/monkeysphere.conf <<EOF
-# Use Hagrid
+# Created automatically by monkeyproof script
+
+# Log level.  Can be SILENT, ERROR, INFO, VERBOSE, DEBUG, in
+# increasing order of verbosity.
+#LOG_LEVEL=INFO
+
+# GPG keyserver to search for keys.
+# Use Hagrid.
 KEYSERVER=keys.openpgp.org
+
+# The path to the SSH known_hosts file.
+#KNOWN_HOSTS=~/.ssh/known_hosts
+
+# Whether or not to hash the generated known_hosts lines.
+# Should be "true" or "false".
+#HASH_KNOWN_HOSTS=false
+
+# The path to the SSH authorized_keys file.
+#AUTHORIZED_KEYS=~/.ssh/authorized_keys
 EOF
 
 cat > /etc/monkeysphere/monkeysphere-authentication.conf <<EOF
