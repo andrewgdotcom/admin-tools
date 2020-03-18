@@ -91,13 +91,8 @@ KEYSERVER=keys.openpgp.org
 EOF
 
 cat > /etc/monkeysphere/monkeysphere-host.conf <<EOF
+# Created automatically by monkeyproof script
 # Monkeysphere host configuration file.
-
-# This is an sh-style shell configuration file.  Variable names should
-# be separated from their assignments by a single '=' and no spaces.
-# Environment variables with the same names as these variables but
-# prefaced by "MONKEYSPHERE_" will take precedence over the values
-# specified here.
 
 # Log level.  Can be SILENT, ERROR, INFO, VERBOSE, DEBUG, in
 # increasing order of verbosity.
