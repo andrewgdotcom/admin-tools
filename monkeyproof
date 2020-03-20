@@ -48,17 +48,21 @@ elif [[ $YUM ]]; then
   if rpm -q gnupg2 | egrep -q "gnupg2-2\.2\."; then
     yum -y --setopt=skip_missing_names_on_install=False install monkeysphere
   else
+    # Hacky, hacky method to get monkeysphere to work on a CentOS/RHEL 7
+    # system with modern settings (Hagrid, etc)
     # https://people.kernel.org/monsieuricon/run-gnupg-2-2-17-on-your-el7-system
     echo "RHEL/CentOS 7 sticky tape..."
     yum install -y yum-plugin-copr
     yum copr enable -y icon/lfit
     yum install -y gnupg22-static
     yum -y --setopt=skip_missing_names_on_install=False install monkeysphere
-    cat <<'EOF' >> /usr/share/monkeysphere/defaultenv
+    if ! egrep -q /opt/gnupg22/bin /usr/share/monkeysphere/defaultenv; then
+        cat <<'EOF' >> /usr/share/monkeysphere/defaultenv
 
 # Added by monkeyproof script
 export PATH=/opt/gnupg22/bin:$PATH
 EOF
+    fi
     # run monkeysphere-authentication once to create default directories
     monkeysphere-authentication list-id-certifiers 2>&1 >/dev/null || true
     cat <<EOF > $MS_SPHERE_DIR/gpg.conf-2.2
@@ -78,7 +82,7 @@ EOF
     # And now perform a filthy, unforgivable patch against monkeysphere.
     # THIS WILL BREAK ON UPGRADES
     # ... but then this is CentOS 7 so it won't be getting any.
-    patch -f -b -d/ -R -p1 <<'EOF'
+    patch -f -b -d/ -R -p1 <<'EOF' || echo -e "\n\nPATCH FAILED, CHECK MANUALLY\n\n"
 *** /usr/share/monkeysphere/ma/add_certifier 2020-03-20 16:40:50.976038098 +0000
 --- /usr/share/monkeysphere/ma/add_certifier.bak 2016-06-27 02:32:33.000000000 +0000
 *************** else
