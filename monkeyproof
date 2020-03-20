@@ -77,6 +77,9 @@ keyid-format 0xlong
 agent-program   /opt/gnupg22/bin/gpg-agent
 dirmngr-program /opt/gnupg22/bin/dirmngr
 EOF
+    # give it a few kicks to make sure
+    GNUPGHOME=$MS_CORE_DIR gpg --list-secret-keys
+    monkeysphere-authentication u
     # And now perform a filthy, unforgivable patch against monkeysphere.
     # THIS WILL BREAK ON UPGRADES
     # ... but then this is CentOS 7 so it won't be getting any.
