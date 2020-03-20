@@ -77,7 +77,8 @@ EOF
     # Migrate the monkeysphere core keyring to v2.2 format now, otherwise
     # monkeysphere-authentication will fail due to lack of user interaction.
     # Any secret key operation is sufficient to cause a migration prompt
-    yes | GNUPGHOME=$MS_CORE_DIR gpg --list-secret-keys
+    # Remember to ignore the broken pipe error...
+    yes | GNUPGHOME=$MS_CORE_DIR gpg --list-secret-keys || true
     # And now perform a filthy, unforgivable patch against monkeysphere.
     # THIS WILL BREAK ON UPGRADES
     # ... but then this is CentOS 7 so it won't be getting any.
