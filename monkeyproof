@@ -45,15 +45,24 @@ if [[ $APT ]]; then
   fi
   apt-get -y install monkeysphere dirmngr
 elif [[ $YUM ]]; then
-  yum -y --setopt=skip_missing_names_on_install=False install monkeysphere
-  if rpm -q gnupg2 | egrep -q "gnupg2-2\.0\."; then
+  if rpm -q gnupg2 | egrep -q "gnupg2-2\.2\."; then
+    yum -y --setopt=skip_missing_names_on_install=False install monkeysphere
+  else
     # https://people.kernel.org/monsieuricon/run-gnupg-2-2-17-on-your-el7-system
     echo "RHEL/CentOS 7 sticky tape..."
-    # run monkeysphere-authentication once to create default directories
-    monkeysphere-authentication list-id-certifiers 2>&1 >/dev/null || true
     yum install -y yum-plugin-copr
     yum copr enable -y icon/lfit
     yum install -y gnupg22-static
+    cat <<EOF > /etc/profile.d/monkeysphere-fix.sh
+export PATH=/opt/gnupg22/bin:$PATH
+EOF
+    cat <<EOF > /etc/profile.d/monkeysphere-fix.csh
+setenv PATH /opt/gnupg22/bin:$PATH
+EOF
+    . /etc/profile.d/monkeysphere-fix.sh
+    yum -y --setopt=skip_missing_names_on_install=False install monkeysphere
+    # run monkeysphere-authentication once to create default directories
+    monkeysphere-authentication list-id-certifiers 2>&1 >/dev/null || true
     cat <<EOF > $MS_SPHERE_DIR/gpg.conf-2.2
 no-greeting
 list-options show-uid-validity
@@ -68,17 +77,6 @@ keyid-format 0xlong
 agent-program   /opt/gnupg22/bin/gpg-agent
 dirmngr-program /opt/gnupg22/bin/dirmngr
 EOF
-    cat <<EOF > /etc/profile.d/monkeysphere-fix.sh
-export PATH=/opt/gnupg22/bin:$PATH
-EOF
-    cat <<EOF > /etc/profile.d/monkeysphere-fix.csh
-setenv PATH /opt/gnupg22/bin:$PATH
-EOF
-    # Migrate the monkeysphere core keyring to v2.2 format now, otherwise
-    # monkeysphere-authentication will fail due to lack of user interaction.
-    # Any secret key operation is sufficient to cause a migration prompt
-    # Remember to ignore the broken pipe error...
-    yes | GNUPGHOME=$MS_CORE_DIR gpg --list-secret-keys || true
     # And now perform a filthy, unforgivable patch against monkeysphere.
     # THIS WILL BREAK ON UPGRADES
     # ... but then this is CentOS 7 so it won't be getting any.
