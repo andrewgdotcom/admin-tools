@@ -97,8 +97,8 @@ done
 # Also whitelist incoming packets on the standard zerotier port.
 centos_safe_ufw allow to any port 9993 comment zerotier
 
-# This is dangerous
-ufw enable <<< y
+# This is dangerous. Bloody CentOS
+ufw enable <<< y || ufw enable <<< y
 
 for network in $NETWORKS; do
 
