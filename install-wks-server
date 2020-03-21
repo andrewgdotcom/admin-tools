@@ -4,6 +4,11 @@
 
 set -euo pipefail
 
+die() {
+    echo $2 >&2
+    exit $1
+}
+
 [[ ${1-} ]] || die 1 "You must provide a domain name"
 
 DOMAIN="${1-}"
