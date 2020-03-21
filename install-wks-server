@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-[[ $1 ]] || die 1 "You must provide a domain name"
+[[ ${1-} ]] || die 1 "You must provide a domain name"
 
 DOMAIN="${1-}"
 LETSENCRYPT_EMAIL="${2-webmaster@$DOMAIN}"
