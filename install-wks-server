@@ -68,14 +68,14 @@ chown -R "$WKSUSER:$APACHEGROUP" "$WKSHOME"
 # configure submission address
 echo "$$SUBMISSION_ADDRESS" > "$WKSHOME/$DOMAIN/submission-address"
 # initialise the directory structure
-sudo -u "$WKSUSER" gpg-wks-server --list-domains
+sudo -Hu "$WKSUSER" gpg-wks-server --list-domains
 # create and publish pgp key for submission address
-sudo -u "$WKSUSER" gpg --batch --passphrase '' --quick-gen-key "$SUBMISSION_ADDRESS"
+sudo -Hu "$WKSUSER" gpg --batch --passphrase '' --quick-gen-key "$SUBMISSION_ADDRESS"
 HASH=$( \
-    sudo -u $WKSUSER gpg --with-wkd-hash --with-colons -K "$SUBMISSION_ADDRESS" \
+    sudo -Hu $WKSUSER gpg --with-wkd-hash --with-colons -K "$SUBMISSION_ADDRESS" \
     | awk -F@ "/^ +[a-zA-Z0-9]+@$DOMAIN/ {print \$1}" \
     )
-sudo -u "$WKSUSER" gpg -o "/var/lib/gnupg/wks/$DOMAIN/hu/$HASH" \
+sudo -Hu "$WKSUSER" gpg -o "/var/lib/gnupg/wks/$DOMAIN/hu/$HASH" \
     --export-options export-minimal --export "$SUBMISSION_ADDRESS"
 
 
