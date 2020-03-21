@@ -94,7 +94,8 @@ if ! apache2ctl configtest >/dev/null; then
     exit 2
 fi
 
-# Remove the 000-default vhost if it exists and our fqdn is one of the aliases
+# Remove the 000-default vhost if it exists and our server name is the fqdn.
+# Otherwise apache will have undefined behaviour.
 if [[ -L /etc/apache2/sites-enabled/000-default.conf && $(hostname --fqdn) == "$SERVER_NAME" ]]; then
         a2dissite 000-default
 fi
