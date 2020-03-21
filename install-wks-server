@@ -1,0 +1,161 @@
+#!/bin/bash
+
+# A script to set up a new wks server
+
+[[ $1 ]] || die 1 "You must provide a domain name"
+
+DOMAIN=$1
+SERVER_NAME=openpgpkey.$DOMAIN
+SERVER_ALIASES=
+SUBMISSION_ADDRESS=key-submission
+WKSHOME=/var/lib/gnupg/wks
+WEBROOT=$WKSHOME/html
+
+apt install gpg-wks-server apache2 certbot procmail
+mkdir -p $(dirname $WKSHOME)
+adduser --disabled-password --home $WKSHOME --gecos "GNUPG WKS Server" gpg-wks-server
+mkdir -p $WKSHOME/$DOMAIN $WKSHOME/Mail $WEBROOT
+
+cat <<'EOF' >$WKSHOME/.forward
+"|exec /usr/bin/procmail || exit 75"
+EOF
+
+cat <<EOF >$WKSHOME/.procmailrc
+MAILDIR=\$HOME/Mail
+LOGFILE=\$HOME/Mail/from
+LOCKFILE=\$HOME/Mail/.lockmail
+VERBOSE=yes
+# filter out FROM_DAEMON mails (bounces, ...) into separate mailbox
+:0
+* ^FROM_DAEMON
+from-daemon/
+# archive (copy!) all "normal" mails
+:0 c
+archive/
+# if not in a loop: handle mails with gpg-wks-server
+:0 w
+* !^From: $SUBMISSION_ADDRESS@$DOMAIN
+* !^X-WKS-Loop: $DOMAIN
+|gpg-wks-server -v --receive \
+    --header X-WKS-Loop=$DOMAIN \
+    --from $SUBMISSION_ADDRESS@$DOMAIN --send
+# if handling failed: store in separate mailbox
+:0 e
+cruft/
+EOF
+
+cat <<'EOF' >/etc/cron.d/gpg-wks-server
+42 3 * * * gpg-wks-server --cron
+EOF
+
+chown -R gpg-wks-server:gpg-wks-server $WKSHOME
+
+echo "$SUBMISSION_ADDRESS@$DOMAIN" > $WKSHOME/$DOMAIN/submission-address
+
+
+###############################
+###### Set up web server ######
+###############################
+
+
+cat > /etc/apache2/sites-available/$SERVER_NAME.conf <<EOF
+<VirtualHost *:80>
+    ServerName $SERVER_NAME
+    DocumentRoot $WEBROOT
+    DirectoryIndex index.html index.htm
+
+    CustomLog /var/log/apache2/$SERVER_NAME.access.log combined
+    ErrorLog /var/log/apache2/$SERVER_NAME.error.log
+
+    <Directory $WEBROOT>
+      Options -Indexes
+      AllowOverride None
+      Require all granted
+    </Directory>
+
+    # redirect everything else to SSL
+    RedirectMatch 301 ^(?!/\.well-known/acme-challenge/).* https://$SERVER_NAME\$0
+</VirtualHost>
+
+EOF
+
+a2ensite $SERVER_NAME
+if ! apache2ctl configtest >/dev/null; then
+    exit 2
+fi
+
+# Remove the 000-default vhost if it exists and our fqdn is one of the aliases
+if [[ -L /etc/apache2/sites-enabled/000-default.conf && $(hostname --fqdn) == "$SERVER_NAME" ]]; then
+        a2dissite 000-default
+fi
+apache2ctl graceful
+
+# Get a letsencrypt certificate
+
+domains=""
+for i in $SERVER_NAME $SERVER_ALIASES; do
+	domains="$domains -d $i"
+done
+# Register with letsencrypt if we don't already have an account locally
+if ! ls /etc/letsencrypt/accounts/acme-v01.api.letsencrypt.org/directory/*/meta.json 2>/dev/null; then
+    yes a | letsencrypt register --email $LETSENCRYPT_EMAIL --no-eff-email || true
+fi
+$LETSENCRYPT certonly $domains -n --keep --webroot --webroot-path $WEBROOT || exit 3
+
+# Test this *after* running letsencrypt/certbot for the first time
+if [[ -d /etc/letsencrypt/renewal-hooks/deploy && -x /usr/bin/certbot ]]; then
+    NEW_CERTBOT=true
+    LETSENCRYPT=/usr/bin/certbot
+fi
+
+if [[ $NEW_CERTBOT && ! -x /etc/letsencrypt/renewal-hooks/deploy/50-webservers ]]; then
+    cat <<EOF > /etc/letsencrypt/renewal-hooks/deploy/50-webservers
+#!/bin/bash
+
+set -e
+
+if [[ \$RENEWED_DOMAINS ]]; then
+    for service in apache2 nginx; do
+        if systemctl status \$service | grep -q '(running)'; then
+            service \$service reload >/dev/null
+        fi
+    done
+fi
+EOF
+    chmod +x /etc/letsencrypt/renewal-hooks/deploy/50-webservers
+fi
+
+cat >> /etc/apache2/sites-available/$SERVER_NAME.conf <<EOF
+<VirtualHost *:443>
+    ServerName $SERVER_NAME
+    DocumentRoot $WEBROOT
+    DirectoryIndex index.html index.htm
+
+    CustomLog /var/log/apache2/$SERVER_NAME-ssl-request.log "%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b"
+    CustomLog /var/log/apache2/$SERVER_NAME-ssl.access.log combined
+    ErrorLog /var/log/apache2/$SERVER_NAME-ssl.error.log
+
+    SSLEngine on
+    SSLStrictSNIVHostCheck off
+    SSLCertificateFile /etc/letsencrypt/live/$SERVER_NAME/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/$SERVER_NAME/privkey.pem
+    SSLCACertificateFile /etc/letsencrypt/live/$SERVER_NAME/chain.pem
+
+    Alias "/.well-known/wks" "$WKSHOME/$DOMAIN"
+EOF
+
+apache2ctl graceful
+
+cat <<EOF >$WEBROOT/index.html
+<html>
+<head>
+<title>openpgpkey.$DOMAIN</title>
+</head>
+<body>
+<p>This is the WKS PGP keyserver for $DOMAIN.</p>
+
+<p>To submit your key, create a publication request using one of the MUAs that
+support <a href="https://wiki.gnupg.org/WKS">WKS</a> or use gpg-wks-client.</p>
+</body>
+</html>
+EOF
