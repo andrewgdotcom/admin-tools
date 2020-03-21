@@ -2,24 +2,29 @@
 
 # A script to set up a new wks server
 
+set -euo pipefail
+
 [[ $1 ]] || die 1 "You must provide a domain name"
 
-DOMAIN=$1
-SERVER_NAME=openpgpkey.$DOMAIN
-SUBMISSION_ADDRESS=key-submission@DOMAIN
+DOMAIN="${1-}"
+LETSENCRYPT_EMAIL="${2-webmaster@$DOMAIN}"
+
+SERVER_NAME="openpgpkey.$DOMAIN"
+WKSUSER=key-submission
+SUBMISSION_ADDRESS="$WKSUSER@$DOMAIN"
 WKSHOME=/var/lib/gnupg/wks
-WEBROOT=$WKSHOME/html
+WEBROOT="$WKSHOME/html"
 
 apt install gpg-wks-server apache2 certbot procmail
-mkdir -p $(dirname $WKSHOME)
-adduser --disabled-password --home $WKSHOME --gecos "GNUPG WKS Server" gpg-wks-server
-mkdir -p $WKSHOME/$DOMAIN $WKSHOME/Mail $WEBROOT
+mkdir -p $(dirname "$WKSHOME")
+adduser --disabled-password --home "$WKSHOME" --gecos "GNUPG WKS Server" "$WKSUSER"
+mkdir -p "$WKSHOME/$DOMAIN" "$WKSHOME/Mail" "$WEBROOT"
 
-cat <<'EOF' >$WKSHOME/.forward
+cat <<'EOF' >"$WKSHOME/.forward"
 "|exec /usr/bin/procmail || exit 75"
 EOF
 
-cat <<EOF >$WKSHOME/.procmailrc
+cat <<EOF >"$WKSHOME/.procmailrc"
 MAILDIR=\$HOME/Mail
 LOGFILE=\$HOME/Mail/from
 LOCKFILE=\$HOME/Mail/.lockmail
@@ -43,24 +48,24 @@ archive/
 cruft/
 EOF
 
-cat <<'EOF' >/etc/cron.d/gpg-wks-server
-42 3 * * * gpg-wks-server --cron
+cat <<EOF >/etc/cron.d/gpg-wks-server
+42 3 * * * $WKSUSER gpg-wks-server --cron
 EOF
 
-chown -R gpg-wks-server:gpg-wks-server $WKSHOME
+chown -R "$WKSUSER:$WKSUSER" "$WKSHOME"
 
 # initialise the directory structure
-sudo -u gpg-wks-server gpg-wks-server --list-domains
+sudo -u "$WKSUSER" gpg-wks-server --list-domains
 
 # configure submission address and create pgp key for it
-echo "$$SUBMISSION_ADDRESS" > $WKSHOME/$DOMAIN/submission-address
-sudo -u gpg-wks-server gpg --batch --passphrase '' --quick-gen-key $$SUBMISSION_ADDRESS
+echo "$$SUBMISSION_ADDRESS" > "$WKSHOME/$DOMAIN/submission-address"
+sudo -u "$WKSUSER" gpg --batch --passphrase '' --quick-gen-key "$SUBMISSION_ADDRESS"
 HASH=$( \
-    sudo -u gpg-wks-server gpg --with-wkd-hash --with-colons -K $$SUBMISSION_ADDRESS \
+    sudo -u $WKSUSER gpg --with-wkd-hash --with-colons -K "$SUBMISSION_ADDRESS" \
     | awk -F@ "/^ +[a-zA-Z0-9]+@$DOMAIN/ {print \$1}" \
     )
-sudo -u gpg-wks-server gpg -o /var/lib/gnupg/wks/$DOMAIN/hu/$HASH \
-    --export-options export-minimal --export $$SUBMISSION_ADDRESS
+sudo -u "$WKSUSER" gpg -o "/var/lib/gnupg/wks/$DOMAIN/hu/$HASH" \
+    --export-options export-minimal --export "$SUBMISSION_ADDRESS"
 
 
 ###############################
@@ -68,7 +73,7 @@ sudo -u gpg-wks-server gpg -o /var/lib/gnupg/wks/$DOMAIN/hu/$HASH \
 ###############################
 
 
-cat > /etc/apache2/sites-available/$SERVER_NAME.conf <<EOF
+cat > "/etc/apache2/sites-available/$SERVER_NAME.conf" <<EOF
 <VirtualHost *:80>
     ServerName $SERVER_NAME
     DocumentRoot $WEBROOT
@@ -89,7 +94,7 @@ cat > /etc/apache2/sites-available/$SERVER_NAME.conf <<EOF
 
 EOF
 
-a2ensite $SERVER_NAME
+a2ensite "$SERVER_NAME"
 if ! apache2ctl configtest >/dev/null; then
     exit 2
 fi
@@ -103,23 +108,13 @@ apache2ctl graceful
 
 # Get a letsencrypt certificate
 
-domains=""
-for i in $SERVER_NAME $SERVER_ALIASES; do
-	domains="$domains -d $i"
-done
 # Register with letsencrypt if we don't already have an account locally
 if ! ls /etc/letsencrypt/accounts/acme-v01.api.letsencrypt.org/directory/*/meta.json 2>/dev/null; then
-    yes a | letsencrypt register --email $LETSENCRYPT_EMAIL --no-eff-email || true
+    yes a | certbot register --email "$LETSENCRYPT_EMAIL" --no-eff-email || true
 fi
-$LETSENCRYPT certonly $domains -n --keep --webroot --webroot-path $WEBROOT || exit 3
+certbot certonly "$SERVER_NAME" -n --keep --webroot --webroot-path "$WEBROOT" || exit 3
 
-# Test this *after* running letsencrypt/certbot for the first time
-if [[ -d /etc/letsencrypt/renewal-hooks/deploy && -x /usr/bin/certbot ]]; then
-    NEW_CERTBOT=true
-    LETSENCRYPT=/usr/bin/certbot
-fi
-
-if [[ $NEW_CERTBOT && ! -x /etc/letsencrypt/renewal-hooks/deploy/50-webservers ]]; then
+if [[ ! -x /etc/letsencrypt/renewal-hooks/deploy/50-webservers ]]; then
     cat <<EOF > /etc/letsencrypt/renewal-hooks/deploy/50-webservers
 #!/bin/bash
 
@@ -136,7 +131,7 @@ EOF
     chmod +x /etc/letsencrypt/renewal-hooks/deploy/50-webservers
 fi
 
-cat >> /etc/apache2/sites-available/$SERVER_NAME.conf <<EOF
+cat >> "/etc/apache2/sites-available/$SERVER_NAME.conf" <<EOF
 <VirtualHost *:443>
     ServerName $SERVER_NAME
     DocumentRoot $WEBROOT
@@ -157,7 +152,7 @@ EOF
 
 apache2ctl graceful
 
-cat <<EOF >$WEBROOT/index.html
+cat <<EOF >"$WEBROOT/index.html"
 <html>
 <head>
 <title>openpgpkey.$DOMAIN</title>
@@ -166,7 +161,8 @@ cat <<EOF >$WEBROOT/index.html
 <p>This is the WKS PGP keyserver for $DOMAIN.</p>
 
 <p>To submit your key, create a publication request using one of the MUAs that
-support <a href="https://wiki.gnupg.org/WKS">WKS</a> or use gpg-wks-client.</p>
+support <a href="https://wiki.gnupg.org/WKS">WKS</a> (e.g. KMail)
+or use gpg-wks-client.</p>
 </body>
 </html>
 EOF
