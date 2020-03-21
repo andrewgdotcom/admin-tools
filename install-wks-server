@@ -21,9 +21,14 @@ WKSHOME=/var/lib/gnupg/wks
 WEBROOT="$WKSHOME/html"
 
 apt install gpg-wks-server apache2 certbot procmail
+
+APACHEUSER=$(ps aux | grep /usr/sbin/apache2 | grep -v ^root | awk '{print $1}' | sort -u)
+APACHEGROUP=$(eval echo $(groups $APACHEUSER|awk -F: '{print $2}'))
+
 mkdir -p $(dirname "$WKSHOME")
 adduser --disabled-password --home "$WKSHOME" --gecos "GNUPG WKS Server" "$WKSUSER"
 mkdir -p "$WKSHOME/$DOMAIN" "$WKSHOME/Mail" "$WEBROOT"
+chmod 2750 "$WKSHOME"
 
 cat <<'EOF' >"$WKSHOME/.forward"
 "|exec /usr/bin/procmail || exit 75"
@@ -57,7 +62,7 @@ cat <<EOF >/etc/cron.d/gpg-wks-server
 42 3 * * * $WKSUSER gpg-wks-server --cron
 EOF
 
-chown -R "$WKSUSER:$WKSUSER" "$WKSHOME"
+chown -R "$WKSUSER:$APACHEGROUP" "$WKSHOME"
 
 # initialise the directory structure
 sudo -u "$WKSUSER" gpg-wks-server --list-domains
