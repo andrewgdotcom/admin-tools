@@ -27,7 +27,7 @@ VERBOSE=yes
 # filter out FROM_DAEMON mails (bounces, ...) into separate mailbox
 :0
 * ^FROM_DAEMON
-from-daemon/
+/dev/null
 # archive (copy!) all "normal" mails
 :0 c
 archive/
