@@ -6,8 +6,7 @@
 
 DOMAIN=$1
 SERVER_NAME=openpgpkey.$DOMAIN
-SERVER_ALIASES=
-SUBMISSION_ADDRESS=key-submission
+SUBMISSION_ADDRESS=key-submission@DOMAIN
 WKSHOME=/var/lib/gnupg/wks
 WEBROOT=$WKSHOME/html
 
@@ -34,11 +33,11 @@ from-daemon/
 archive/
 # if not in a loop: handle mails with gpg-wks-server
 :0 w
-* !^From: $SUBMISSION_ADDRESS@$DOMAIN
+* !^From: $$SUBMISSION_ADDRESS
 * !^X-WKS-Loop: $DOMAIN
 |gpg-wks-server -v --receive \
     --header X-WKS-Loop=$DOMAIN \
-    --from $SUBMISSION_ADDRESS@$DOMAIN --send
+    --from $$SUBMISSION_ADDRESS --send
 # if handling failed: store in separate mailbox
 :0 e
 cruft/
@@ -50,7 +49,18 @@ EOF
 
 chown -R gpg-wks-server:gpg-wks-server $WKSHOME
 
-echo "$SUBMISSION_ADDRESS@$DOMAIN" > $WKSHOME/$DOMAIN/submission-address
+# initialise the directory structure
+sudo -u gpg-wks-server gpg-wks-server --list-domains
+
+# configure submission address and create pgp key for it
+echo "$$SUBMISSION_ADDRESS" > $WKSHOME/$DOMAIN/submission-address
+sudo -u gpg-wks-server gpg --batch --passphrase '' --quick-gen-key $$SUBMISSION_ADDRESS
+HASH=$( \
+    sudo -u gpg-wks-server gpg --with-wkd-hash --with-colons -K $$SUBMISSION_ADDRESS \
+    | awk -F@ "/^ +[a-zA-Z0-9]+@$DOMAIN/ {print \$1}" \
+    )
+sudo -u gpg-wks-server gpg -o /var/lib/gnupg/wks/$DOMAIN/hu/$HASH \
+    --export-options export-minimal --export $$SUBMISSION_ADDRESS
 
 
 ###############################
