@@ -126,7 +126,7 @@ apache2ctl graceful
 if ! ls /etc/letsencrypt/accounts/*.api.letsencrypt.org/directory/*/meta.json 2>/dev/null; then
     yes a | certbot register --email "$LETSENCRYPT_EMAIL" --no-eff-email || true
 fi
-certbot certonly "$SERVER_NAME" -n --keep --webroot --webroot-path "$WEBROOT" || exit 3
+certbot certonly -d "$SERVER_NAME" -n --keep --webroot --webroot-path "$WEBROOT" || exit 3
 
 if [[ ! -x /etc/letsencrypt/renewal-hooks/deploy/50-webservers ]]; then
     cat <<EOF > /etc/letsencrypt/renewal-hooks/deploy/50-webservers
