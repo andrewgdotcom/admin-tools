@@ -165,6 +165,7 @@ cat >> "/etc/apache2/sites-available/$SERVER_NAME.conf" <<EOF
 </VirtualHost>
 EOF
 
+a2enmod ssl
 apache2ctl graceful
 
 cat <<EOF >"$WEBROOT/index.html"
