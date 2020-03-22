@@ -51,11 +51,11 @@ VERBOSE=yes
 archive/
 # if not in a loop: handle mails with gpg-wks-server
 :0 w
-* !^From: $$SUBMISSION_ADDRESS
+* !^From: $SUBMISSION_ADDRESS
 * !^X-WKS-Loop: $DOMAIN
 |gpg-wks-server -v --receive \
     --header X-WKS-Loop=$DOMAIN \
-    --from $$SUBMISSION_ADDRESS --send
+    --from $SUBMISSION_ADDRESS --send
 # if handling failed: store in separate mailbox
 :0 e
 cruft/
@@ -69,7 +69,7 @@ chown -R "$WKSUSER:$APACHEGROUP" "$WKSHOME"
 
 
 # configure submission address
-echo "$$SUBMISSION_ADDRESS" > "$WKSHOME/$DOMAIN/submission-address"
+echo "$SUBMISSION_ADDRESS" > "$WKSHOME/$DOMAIN/submission-address"
 # initialise the directory structure
 sudo -Hu "$WKSUSER" gpg-wks-server --list-domains
 # create and publish pgp key for submission address
