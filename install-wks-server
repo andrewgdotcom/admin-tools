@@ -162,6 +162,7 @@ cat >> "/etc/apache2/sites-available/$SERVER_NAME.conf" <<EOF
     SSLCACertificateFile /etc/letsencrypt/live/$SERVER_NAME/chain.pem
 
     Alias "/.well-known/wks" "$WKSHOME/$DOMAIN"
+</VirtualHost>
 EOF
 
 apache2ctl graceful
