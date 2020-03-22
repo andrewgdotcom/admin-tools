@@ -21,7 +21,7 @@ WKSHOME=/var/lib/gnupg/wks
 WEBROOT="$WKSHOME/html"
 DEFAULT_GPG_OPTIONS="--pinentry-mode loopback --keyid-format 0xlong --with-fingerprint --status-fd 2"
 
-apt install gpg-wks-server apache2 certbot procmail ufw
+apt install gpg-wks-server apache2 certbot procmail ufw haveged
 
 ufw allow to any app "Apache Full"
 
@@ -123,7 +123,7 @@ apache2ctl graceful
 # Get a letsencrypt certificate
 
 # Register with letsencrypt if we don't already have an account locally
-if ! ls /etc/letsencrypt/accounts/acme-v01.api.letsencrypt.org/directory/*/meta.json 2>/dev/null; then
+if ! ls /etc/letsencrypt/accounts/*.api.letsencrypt.org/directory/*/meta.json 2>/dev/null; then
     yes a | certbot register --email "$LETSENCRYPT_EMAIL" --no-eff-email || true
 fi
 certbot certonly "$SERVER_NAME" -n --keep --webroot --webroot-path "$WEBROOT" || exit 3
