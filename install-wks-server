@@ -22,7 +22,7 @@ LETSENCRYPT_EMAIL="${2-webmaster@$DOMAIN}"
 
 SERVER_NAME="openpgpkey.$DOMAIN"
 WKSUSER=key-submission
-SUBMISSION_ADDRESS="$WKSUSER@$DOMAIN"
+SUBMISSION_ADDRESS="$WKSUSER@$SERVER_NAME"
 WKSHOME=/var/lib/gnupg/wks
 WEBROOT="$WKSHOME/html"
 DEFAULT_GPG_OPTIONS="--pinentry-mode loopback --keyid-format 0xlong --with-fingerprint --status-fd 2"
