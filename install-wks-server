@@ -30,6 +30,7 @@ APACHEGROUP=$(eval echo $(groups $APACHEUSER|awk -F: '{print $2}'))
 
 # Before we do anything, make sure we have enough entropy
 # https://lists.gnupg.org/pipermail/gnupg-users/2020-March/063372.html
+mkdir -p /etc/gcrypt
 cat <<EOF >/etc/gcrypt/random.conf
 # Options for the random generator
 
