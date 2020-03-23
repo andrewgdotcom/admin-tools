@@ -215,7 +215,6 @@ TraceEnable Off
 EOF
 
 cat <<'EOF' >/etc/apache2/mods-available/ssl.conf
-more /etc/apache2/mods-available/ssl.conf
 <IfModule mod_ssl.c>
 
 SSLRandomSeed startup builtin
