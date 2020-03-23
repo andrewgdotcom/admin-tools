@@ -186,7 +186,69 @@ cat >> "/etc/apache2/sites-available/$SERVER_NAME.conf" <<EOF
 </VirtualHost>
 EOF
 
+cat <<'EOF' >/etc/apache2/conf-available/security.conf
+ServerTokens Prod
+ServerSignature Off
+TraceEnable Off
+<IfModule mod_headers.c>
+    Header always merge X-Content-Type-Options "nosniff"
+    Header always merge X-Frame-Options "sameorigin"
+    Header always unset X-Powered-By
+    Header always edit Set-Cookie ^(.*)$ ";HttpOnly;Secure"
+</IfModule>
+<DirectoryMatch "^\.git|\/\.git">
+    Deny from all
+    Satisfy all
+</DirectoryMatch>
+EOF
+
+cat <<'EOF' >/etc/apache2/mods-available/ssl.conf
+more /etc/apache2/mods-available/ssl.conf
+<IfModule mod_ssl.c>
+
+SSLRandomSeed startup builtin
+SSLRandomSeed startup file:/dev/urandom 512
+SSLRandomSeed connect builtin
+SSLRandomSeed connect file:/dev/urandom 512
+
+AddType application/x-x509-ca-cert .crt
+AddType application/x-pkcs7-crl	.crl
+
+SSLPassPhraseDialog  exec:/usr/share/apache2/ask-for-passphrase
+SSLSessionCache  shmcb:${APACHE_RUN_DIR}/ssl_scache(512000)
+SSLSessionCacheTimeout  300
+
+SSLProtocol all -SSLv2 -SSLv3 -TLSv1 -TLSv1.1
+SSLHonorCipherOrder on
+# DO NOT USE TABS IN SSLCipherSuite
+SSLCipherSuite \
+  "EECDH+AESGCM EECDH EDH+AESGCM EDH !SEED !SHA1 !SHA256 !SHA384 !MEDIUM !LOW !aNULL !eNULL !PSK"
+SSLCompression off
+
+## Strict Transport Security
+<IfModule mod_headers.c>
+	Header always set Strict-Transport-Security "max-age=15768000"
+</IfModule>
+
+## Apache 2.4 only
+SSLUseStapling on
+SSLStaplingResponderTimeout 5
+SSLStaplingReturnResponderErrors off
+SSLStaplingCache shmcb:/var/run/ocsp(128000)
+
+## Apache >=2.4.8 + OpenSSL >=1.0.2 only
+SSLOpenSSLConfCmd DHParameters /etc/ssl/certs/dhparam.pem
+
+</IfModule>
+EOF
+
+if [[ ! -e /etc/ssl/certs/dhparam.pem ]]; then
+	openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+fi
+
+a2enconf security
 a2enmod ssl
+a2enmod headers
 apache2ctl graceful
 
 cat <<EOF >"$WEBROOT/index.html"
