@@ -97,6 +97,8 @@ HASH=$( \
 sudo -Hu "$WKSUSER" gpg $DEFAULT_GPG_OPTIONS -o "/var/lib/gnupg/wks/$DOMAIN/hu/$HASH" \
     --export-options export-minimal --export "$SUBMISSION_ADDRESS"
 
+touch "$WKSHOME/$DOMAIN/policy"
+
 # daily grooming cron job
 cat <<EOF >/etc/cron.d/gpg-wks-server
 42 3 * * * $WKSUSER gpg-wks-server --cron
@@ -194,7 +196,9 @@ cat >> "/etc/apache2/sites-available/$SERVER_NAME.conf" <<EOF
     SSLCertificateKeyFile /etc/letsencrypt/live/$SERVER_NAME/privkey.pem
     SSLCACertificateFile /etc/letsencrypt/live/$SERVER_NAME/chain.pem
 
-    Alias "/.well-known/wks" "$WKSHOME/$DOMAIN"
+    # More specific alias comes first
+    Alias "/.well-known/openpgpkey/$DOMAIN" "$WKSHOME/$DOMAIN"
+    Alias "/.well-known/openpgpkey" "$WKSHOME/$DOMAIN"
 </VirtualHost>
 EOF
 
