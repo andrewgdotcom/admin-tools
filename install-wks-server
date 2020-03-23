@@ -270,11 +270,11 @@ cat <<EOF >"$WEBROOT/index.html"
 <title>openpgpkey.$DOMAIN</title>
 </head>
 <body>
-<p>This is the WKS PGP keyserver for $DOMAIN.</p>
+<p>This is the OpenPGP WKS server for $DOMAIN.</p>
 
 <p>To submit your key, create a publication request using one of the MUAs that
 support <a href="https://wiki.gnupg.org/WKS">WKS</a> (e.g. KMail)
-or use gpg-wks-client.</p>
+or use <a href="https://www.gnupg.org/documentation/manuals/gnupg/gpg_002dwks_002dclient.html">gpg-wks-client</a>.</p>
 </body>
 </html>
 EOF
