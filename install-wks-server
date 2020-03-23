@@ -33,17 +33,9 @@ ufw allow to any app "Apache Full"
 APACHEUSER=$(ps aux | grep /usr/sbin/apache2 | grep -v ^root | awk '{print $1}' | sort -u)
 APACHEGROUP=$(eval echo $(groups $APACHEUSER|awk -F: '{print $2}'))
 
-# Before we do anything, make sure we have enough entropy
+# Before we do anything else, make sure we have enough entropy
 # https://lists.gnupg.org/pipermail/gnupg-users/2020-March/063372.html
-mkdir -p /etc/gcrypt
-cat <<EOF >/etc/gcrypt/random.conf
-# Options for the random generator
-
-# We don't trust the the Jitter based thing -  do not use it.
-#disable-jent
-
-only-urandom
-EOF
+mkdir -p /etc/gcrypt && echo only-urandom>/etc/gcrypt/random.conf
 
 
 #################################
