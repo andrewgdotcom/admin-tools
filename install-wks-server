@@ -1,6 +1,11 @@
 #!/bin/bash
 
-# A script to set up a new wks server
+# A script to set up a new wks server. It takes one mandatory argument, the
+# DOMAIN for which wks will be configured. It takes an optional second
+# argument, which is the email address of the system administrator (defaults
+# to "webmaster@$DOMAIN")
+
+# You MUST already have an MTA configured and able to deliver to local users.
 
 set -euo pipefail
 
