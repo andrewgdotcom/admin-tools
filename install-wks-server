@@ -79,7 +79,11 @@ archive/
 cruft/
 EOF
 
-chown -R "$WKSUSER:$APACHEGROUP" "$WKSHOME"
+chown -R "$WKSUSER:$WKSUSER" "$WKSHOME"
+chown "$WKSUSER:$APACHEGROUP" "$WKSHOME"
+chown -R "$WKSUSER:$APACHEGROUP" "$WKSHOME/$DOMAIN" "$WEBROOT"
+chmod -R o= "$WKSHOME"
+chmod -R g-w "$WKSHOME"
 
 # configure submission address
 echo "$SUBMISSION_ADDRESS" > "$WKSHOME/$DOMAIN/submission-address"
