@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# A script to set up a new wks server. It takes one mandatory argument, the
-# DOMAIN for which wks will be configured. It takes an optional second
+# A QAD script to set up a new wks server. It takes one mandatory argument,
+# the DOMAIN for which wks will be configured. It takes an optional second
 # argument, which is the email address of the system administrator (defaults
 # to "webmaster@$DOMAIN")
 
 # You MUST already have an MTA configured and able to deliver to local users.
+# You MUST have a DNS record for "openpgpkey.$DOMAIN" pointing to this machine.
 
 set -euo pipefail
 
