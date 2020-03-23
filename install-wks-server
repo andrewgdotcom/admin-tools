@@ -48,7 +48,6 @@ mkdir -p /etc/gcrypt && echo only-urandom>/etc/gcrypt/random.conf
 mkdir -p $(dirname "$WKSHOME")
 adduser --disabled-password --home "$WKSHOME" --gecos "GNUPG WKS Server" "$WKSUSER"
 mkdir -p "$WKSHOME/$DOMAIN" "$WKSHOME/Mail" "$WEBROOT"
-chmod 2750 "$WKSHOME"
 
 # configure mail delivery
 cat <<'EOF' >"$WKSHOME/.forward"
