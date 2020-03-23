@@ -21,7 +21,7 @@ WKSHOME=/var/lib/gnupg/wks
 WEBROOT="$WKSHOME/html"
 DEFAULT_GPG_OPTIONS="--pinentry-mode loopback --keyid-format 0xlong --with-fingerprint --status-fd 2"
 
-apt install gpg-wks-server apache2 certbot procmail ufw
+apt install -y gpg-wks-server apache2 certbot procmail ufw
 
 ufw allow to any app "Apache Full"
 
