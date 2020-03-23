@@ -92,9 +92,8 @@ sudo -Hu "$WKSUSER" gpg-wks-server --list-domains
 sudo -Hu "$WKSUSER" gpg $DEFAULT_GPG_OPTIONS --batch --passphrase '' --quick-gen-key "$SUBMISSION_ADDRESS"
 HASH=$( \
     sudo -Hu $WKSUSER gpg $DEFAULT_GPG_OPTIONS --with-wkd-hash -K "$SUBMISSION_ADDRESS" \
-    | awk -F@ "/^ +[a-zA-Z0-9]+@$DOMAIN/ {print \$1}" \
+    | perl -ne "print if s/^\s+([a-zA-Z0-9]+)\@$SERVER_NAME$/\$1/" \
     )
-HASH=$(eval echo $HASH)
 sudo -Hu "$WKSUSER" gpg $DEFAULT_GPG_OPTIONS -o "/var/lib/gnupg/wks/$DOMAIN/hu/$HASH" \
     --export-options export-minimal --export "$SUBMISSION_ADDRESS"
 
