@@ -268,10 +268,10 @@ apache2ctl graceful
 cat <<EOF >"$WEBROOT/index.html"
 <html>
 <head>
-<title>openpgpkey.$DOMAIN</title>
+<title>OpenPGP WKD server</title>
 </head>
 <body>
-<p>This is the OpenPGP WKD server for $DOMAIN.</p>
+<p>This is an OpenPGP WKD server.</p>
 </body>
 </html>
 EOF
