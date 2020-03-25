@@ -145,7 +145,7 @@ apache2ctl graceful
 # Get a letsencrypt certificate
 
 # Register with letsencrypt if we don't already have an account locally
-if ! ls /etc/letsencrypt/accounts/*.api.letsencrypt.org/directory/*/meta.json 2>/dev/null; then
+if ! ls /etc/letsencrypt/accounts/*.api.letsencrypt.org/directory/*/meta.json 2>&1 >/dev/null; then
     yes a | certbot register --email "$LETSENCRYPT_EMAIL" --no-eff-email || true
 fi
 certbot certonly -d "$SERVER_NAME" -n --keep --webroot --webroot-path "$WEBROOT" || exit 3
