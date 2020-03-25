@@ -3,7 +3,8 @@
 # A QAD script to set up a new wks server. It takes one mandatory argument,
 # the DOMAIN for which wks will be configured. It takes an optional second
 # argument, which is the email address of the system administrator (defaults
-# to "webmaster@$DOMAIN")
+# to "webmaster@$DOMAIN") for use in registering the server with letsencrypt,
+# if it has not already been done.
 
 # You MUST already have an MTA configured and able to deliver to local users.
 # You MUST have incoming TCP ports 80 and 443 enabled.
