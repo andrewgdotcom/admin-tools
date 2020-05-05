@@ -1,0 +1,58 @@
+#!/bin/bash
+
+# A QAD script to ensure there is sufficient swap on a server. If there is not
+# enough, and there is sufficient free disk, a swapfile is created under /.
+
+set -eo pipefail
+
+# Percentage of memory to allocate as swap.
+maxmempercent=50
+# Filename to create. In the event of a name clash, we will append digits.
+swapbase="/swapfile"
+# Maximum % of free space in the root FS that we are allowed to consume.
+# Use the command line flag '--force' to override this.
+maxdiskpercent=20
+
+while [[ $1 ]]; do
+    if [[ $1 == "--force" ]]; then
+        force=1
+    else
+        maxmempercent=$1
+    fi
+    shift
+done
+
+memtotal=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)
+swaptotal=$(awk '/^SwapTotal:/ {print $2}' /proc/meminfo)
+let minswap=memtotal*maxmempercent/100
+let shortfall=minswap-swaptotal
+
+# Only make changes if the shortfall is significant, i.e. >20%
+let leeway=minswap/5
+
+if [[ $shortfall -gt $leeway ]]; then
+    rootfree=$(df -k / | awk '/^\// {print $4}')
+    let maxfilesize=rootfree*maxdiskpercent/100
+    if [[ $shortfall -ge $rootfree ]]; then
+        echo "Not enough free space in /. Aborting."
+        exit 1
+    elif [[ $shortfall -ge $maxfilesize && ! $force ]]; then
+        echo "Refusing to create swapfile larger than $maxdiskpercent% of free space on /"
+        echo "Incant '$0 --force' to override."
+        exit 2
+    else
+        swapfile=$swapbase
+        i=0
+        while [[ -f $swapfile ]]; do
+            let i++
+            swapfile="${swapbase}$i"
+        done
+        dd if=/dev/zero of=$swapfile bs=1024 count=$shortfall
+        chmod og= $swapfile
+        mkswap $swapfile
+        cat <<EOF >>/etc/fstab
+$swapfile	none		swap	swap	0	0
+EOF
+        swapon -a
+    fi
+fi
