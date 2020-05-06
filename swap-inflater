@@ -44,7 +44,7 @@ if [[ $shortfall -gt $leeway ]]; then
         swapfile=$swapbase
         i=0
         while [[ -f $swapfile ]]; do
-            let i++
+            let i+=1
             swapfile="${swapbase}$i"
         done
         dd if=/dev/zero of=$swapfile bs=1024 count=$shortfall
