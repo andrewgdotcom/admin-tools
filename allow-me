@@ -8,6 +8,11 @@ err_report() {
 }
 trap err_report ERR
 
+die() {
+    echo $2 >&2
+    exit $1
+}
+
 SCRIPT_DIR=$(dirname $(readlink -f $0))
 
 if [[ -f /opt/git/admin-tools/parse-opt.sh ]]; then
@@ -33,4 +38,6 @@ if [[ $@ ]]; then
 elif [[ $SSH_CONNECTION ]]; then
     ssh_connection_array=($SSH_CONNECTION)
     ufw allow to any app OpenSSH from "${ssh_connection_array[0]}" comment "${COMMENT}"
+else
+    die 1 "No IPs supplied"
 fi
