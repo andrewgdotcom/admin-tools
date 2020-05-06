@@ -4,6 +4,21 @@
 
 set -euo pipefail
 
+declare -A PO_SHORT_MAP
+# no short options
+declare -A PO_LONG_MAP
+PO_LONG_MAP["comment:"]="COMMENT"
+. ${SCRIPT_DIR}/parse-opt.sh
+
+if [[ ! $COMMENT ]]; then
+    COMMENT="added by $0"
+fi
+
 ssh_connection_array=($SSH_CONNECTION)
-source=${ssh_connection_array[0]}
-ufw allow to any app OpenSSH from "${1:-$source}"
+sources=(${ssh_connection_array[0]})
+if [[ $@ ]]; then
+    sources="$@"
+fi
+for source in "${sources[@]}"; do
+    ufw allow to any app OpenSSH from "${source}" comment "${COMMENT}"
+done
