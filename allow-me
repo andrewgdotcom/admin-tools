@@ -26,11 +26,11 @@ if [[ ! $COMMENT ]]; then
     COMMENT="added by $0"
 fi
 
-ssh_connection_array=($SSH_CONNECTION)
-sources=(${ssh_connection_array[0]})
 if [[ $@ ]]; then
-    sources="$@"
+    for source in $@; do
+        ufw allow to any app OpenSSH from "${source}" comment "${COMMENT}"
+    done
+elif [[ $SSH_CONNECTION ]]; then
+    ssh_connection_array=($SSH_CONNECTION)
+    ufw allow to any app OpenSSH from "${ssh_connection_array[0]}" comment "${COMMENT}"
 fi
-for source in "${sources[@]}"; do
-    ufw allow to any app OpenSSH from "${source}" comment "${COMMENT}"
-done
