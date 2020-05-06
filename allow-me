@@ -39,5 +39,5 @@ elif [[ $SSH_CONNECTION ]]; then
     ssh_connection_array=($SSH_CONNECTION)
     ufw allow to any app OpenSSH from "${ssh_connection_array[0]}" comment "${COMMENT}"
 else
-    die 1 "No IPs supplied"
+    die 1 "No IPs supplied and could not guess connection details"
 fi
