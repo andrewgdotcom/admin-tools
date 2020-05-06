@@ -1,6 +1,10 @@
 #!/bin/bash
 
 set -eo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 YQ=/usr/local/bin/yq
 

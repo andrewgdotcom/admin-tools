@@ -5,6 +5,10 @@
 
 set -e
 shopt -s nullglob
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 if [[ -d /etc/apt ]]; then
 	if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
@@ -63,6 +67,10 @@ if [[ ! -x /etc/letsencrypt/renewal-hooks/deploy/50-webservers ]]; then
 #!/bin/bash
 
 set -e
+err_report() {
+    echo "errexit on line \$(caller)" >&2
+}
+trap err_report ERR
 
 if [[ \$RENEWED_DOMAINS ]]; then
     for service in apache2 nginx; do

@@ -4,6 +4,10 @@
 # enough, and there is sufficient free disk, a swapfile is created under /.
 
 set -eo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 # Percentage of memory to allocate as swap.
 maxmempercent=50

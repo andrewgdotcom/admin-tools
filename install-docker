@@ -1,6 +1,10 @@
 #!/bin/bash
 
 set -e
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 BRANCH=master
 DATA_DIR=/data

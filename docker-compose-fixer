@@ -4,6 +4,10 @@
 # by using the technique at https://github.com/docker/compose/issues/6023#issuecomment-419792269
 
 set -euo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 hostname=$(hostname --fqdn)
 

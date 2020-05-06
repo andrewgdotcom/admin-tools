@@ -4,6 +4,10 @@
 # We also optionally update the local /etc/hosts file
 
 set -eo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 SCRIPT_DIR=$(dirname $(readlink -f $0))
 

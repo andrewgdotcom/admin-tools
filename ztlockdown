@@ -14,6 +14,10 @@
 # secure and should have ssh access.
 
 set -eo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 ### TODO: why does the first "ufw allow" on CentOS throw "ERROR: problem running"?
 centos_safe_ufw() {

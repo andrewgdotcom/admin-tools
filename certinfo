@@ -1,14 +1,14 @@
 #!/bin/bash
 
 set -eo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
-# X509 tooling is shit. keytool is shit. openssl is shit. It's all shit.
-# A shit sandwich, where the bread, the butter and the plate are all made
-# of the foulest fucking catshit imaginable, covered in dogshit sauce in a
-# house made of chickenshit.
-
-# But we still have to deal with the fucking hateful stuff. So here goes.
-# How to make the shittiest fucking tools in the known universe *usable*...
+# X509 tooling is crap. keytool is crap. openssl is crap. It's all crap.
+# But we still have to deal with the hateful stuff. So here goes.
+# How to make the worst tools in the known universe *usable*...
 
 usage() {
     cat <<EOF

@@ -3,6 +3,10 @@
 # A quick script to explicitly allow ssh connections in from the calling IP
 
 set -euo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 declare -A PO_SHORT_MAP
 # no short options

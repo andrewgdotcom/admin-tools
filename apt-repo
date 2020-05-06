@@ -1,6 +1,10 @@
 #!/bin/bash
 
 set -e
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 CURL_FLAGS="-LSsf"
 
 SOURCES_DIR=/etc/apt/sources.list.d

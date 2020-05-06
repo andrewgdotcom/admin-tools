@@ -5,6 +5,10 @@
 
 set -eo pipefail
 shopt -s nullglob
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 CONFIG=/etc/rsyncr.conf
 YQ=/usr/local/bin/yq

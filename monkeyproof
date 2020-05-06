@@ -3,6 +3,10 @@
 # It *should* be idempotent...
 
 set -eo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 if [[ -d /etc/apt ]]; then
 	APT=true

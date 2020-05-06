@@ -4,6 +4,10 @@
 # $1 is the ansible host or group name
 
 set -eo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 die() {
     echo $2 >&2

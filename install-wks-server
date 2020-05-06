@@ -11,6 +11,10 @@
 # You MUST have a DNS record for "openpgpkey.$DOMAIN" pointing to this machine.
 
 set -euo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 die() {
     echo $2 >&2
@@ -156,6 +160,10 @@ if [[ ! -x /etc/letsencrypt/renewal-hooks/deploy/50-webservers ]]; then
 #!/bin/bash
 
 set -e
+err_report() {
+    echo "errexit on line \$(caller)" >&2
+}
+trap err_report ERR
 
 if [[ \$RENEWED_DOMAINS ]]; then
     for service in apache2 nginx; do

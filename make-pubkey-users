@@ -8,6 +8,10 @@
 # ~/.ssh/authorized_keys
 
 set -eo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 WHEEL=wheel
 DEBIAN=

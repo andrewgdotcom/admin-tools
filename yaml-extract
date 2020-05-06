@@ -4,6 +4,10 @@
 # Requires yq (the one from python-pip, not the other one)
 
 set -e
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
 
 YQ=/usr/local/bin/yq
 
