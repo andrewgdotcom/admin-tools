@@ -10,11 +10,17 @@ trap err_report ERR
 
 SCRIPT_DIR=$(dirname $(readlink -f $0))
 
-declare -A PO_SHORT_MAP
-# no short options
-declare -A PO_LONG_MAP
-PO_LONG_MAP["comment:"]="COMMENT"
-. ${SCRIPT_DIR}/parse-opt.sh
+if [[ -f /opt/git/admin-tools/parse-opt.sh ]]; then
+    # No short arguments
+    declare -A PO_SHORT_MAP
+
+    # All long arguments are lowercase versions of their corresponding envars
+    declare -A PO_LONG_MAP
+    PO_LONG_MAP["comment:"]="COMMENT"
+
+    # parse command line options
+    . /opt/git/admin-tools/parse-opt.sh
+fi
 
 if [[ ! $COMMENT ]]; then
     COMMENT="added by $0"
