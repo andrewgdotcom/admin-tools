@@ -37,7 +37,7 @@ if ! curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/status \
     die 1 "Zerotier is offline. Aborting!"
 fi
 
-hosts=$(ansible "$inventory" -m command -u "$REMOTE_USER" -b -a \
+hosts=$(ansible $inventory -m command -u "$REMOTE_USER" -b -a \
     'perl -e "open(IN, q[-|], q[zerotier-cli status]); while(<IN>) { print if(s/^.*200 info ([0-9a-fA-F]+) .*$/RESULT;{{ inventory_hostname }};$1/) }"')
 
 for network in $NETWORKS; do
