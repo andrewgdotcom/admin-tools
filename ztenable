@@ -19,10 +19,15 @@ CURL_ARGS=-SsfL
 if [[ ! $ZT_TOKEN_FILE ]]; then
     ZT_TOKEN_FILE=/root/.zerotier-token
 fi
+
 inventory="$1"
-. "$2"
+config="$2"
 REMOTE_USER="$3"
 
+[[ -n "$inventory" && -n "$config" ]] || die 99 "Usage: $0 <target> <config> [<remote_user>]"
+[[ -f "$config" ]] || die 99 "Could not open $config"
+
+. "$config"
 [[ $REMOTE_USER ]] || REMOTE_USER="$USER"
 
 # canonicalise format
