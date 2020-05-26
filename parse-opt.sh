@@ -165,7 +165,8 @@ __PO__parse_argv() {
 
     # return the remaining arguments
     # `set` reloads ARGV; `--` forbids set from consuming options
-    echo set -- "$@"
+    # `printf %q` re-quotes the arguments to prevent word-splitting
+    echo set -- $(printf ' %q' "$@")
 }
 
 eval $(__PO__canonicalize_argv "$@")
