@@ -10,12 +10,15 @@ die() {
 
 HOSTS=$1
 if [[ -z "$HOSTS" ]]; then
-    die 1 "Usage: $0 <host>[:<port>][,<host>[:<port]][,...] [<retries>]"
+    die 1 "Usage: $0 <host>[:<port>][,<host>[:<port]][,...] [<retries> [<retry_wait>]]"
 fi
 HOSTS=$(tr , " " <<< $HOSTS)
 
 retries=$2
 [[ $retries ]] || retries=30
+
+retry_wait=$3
+[[ $retry_wait ]] || retry_wait=10
 
 for host in $HOSTS; do
   port=${host#*:}
@@ -44,7 +47,7 @@ for host in $HOSTS; do
     if [[ $retries -eq 0 ]]; then
         die 2 "Too many retries; aborting"
     fi
-    sleep 10
+    sleep $retry_wait
   done
 done
 exit 0
