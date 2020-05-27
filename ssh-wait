@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# A script to wait for a list of ssh servers to come up
+# Shamelessly stolen from https://serverfault.com/a/995377/254476
+
+die() {
+    echo -e $2 >&2
+    exit $1
+}
+
+HOSTS=$1
+if [[ -z "$HOSTS" ]]; then
+    die 1 "Usage: $0 <host>[:<port>][,<host>[:<port]][,...] [<retries>]"
+fi
+HOSTS=$(tr , " " <<< $HOSTS)
+
+retries=$2
+[[ $retries ]] || retries=30
+
+for host in $HOSTS; do
+  port=${host#*:}
+  host=${host%%:*}
+  [[ $port && $port != $host ]] || port=22
+
+  result=1 # 0 upon success
+  while :; do 
+    # Disable all forms of authentication as we don't want to waste time
+    status=$(SSH_AUTH_SOCK=/dev/null ssh -i /dev/null -l "" -o BatchMode=yes -o ConnectTimeout=5 ${host} -P ${port} echo ok 2>&1)
+    result=$?
+    if [[ $result -eq 0 ]]; then
+        # this is not really expected but it could happen
+        echo "logged in anonymously to $host"
+        break
+    fi
+    if [[ $result -eq 255 ]]; then
+        # connection refused also gets you here
+        if [[ $status == *"Permission denied"* || $status == *"Host key verification failed"* ]] ; then
+            # If we get any kind of authorisation error it counts as success
+            echo "connected to $host"
+            break
+        fi
+    fi
+    retries=$((retries-1))
+    if [[ $retries -eq 0 ]]; then
+        die 2 "Too many retries; aborting"
+    fi
+    sleep 10
+  done
+done
+exit 0
