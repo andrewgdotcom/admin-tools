@@ -1,0 +1,47 @@
+#!/bin/bash
+
+set -eo pipefail
+err_report() {
+    echo "errexit on line $(caller)" >&2
+}
+trap err_report ERR
+
+# QAD script to preseed a list of admin users
+# Admin users MUST log in without a local password (LDAP, pubkey...)
+
+if [[ -d /etc/apt ]]; then
+	APT=true
+	SUDO=sudo
+elif [[ -d /etc/yum ]]; then
+	YUM=true
+	SUDO=wheel
+else
+	echo "Distribution not supported!"
+	exit -1
+fi
+
+# A *newline-separated* list of sudoers to preseed
+ADMIN_USERS="andgal Andrew Gallagher"
+
+if [[ -f /etc/preseed-admins ]]; then
+	. /etc/preseed-admins
+fi
+if [[ -f ~/.preseed-admins ]]; then
+	. ~/.preseed-admins
+fi
+
+IFS=$'\n' read -d '' -ra admin_users_a <<< "$ADMIN_USERS" || true
+for i in "${admin_users_a[@]}"; do
+	userid="${i%% *}"
+	realname="${i#* }"
+	if [[ $APT ]]; then
+		# We can and must do this on one line, else we get prompted
+		getent passwd $userid || adduser --disabled-password --gecos "${realname}" $userid
+	elif [[ $YUM ]]; then
+		# We can't do it on one line, but adduser doesn't complain
+		getent passwd $userid || adduser $userid
+		usermod --lock $userid
+		usermod --comment "${realname}" $userid
+	fi
+	usermod -aG ${SUDO} $userid
+done
