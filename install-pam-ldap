@@ -26,9 +26,6 @@ export DEBIAN_FRONTEND=noninteractive
 LDAP_SERVERS="ldaps://pdc.example.com"
 BASE_DN="dc=example,dc=com"
 
-# A *newline-separated* list of sudoers to preseed
-ADMIN_USERS="andgal Andrew Gallagher"
-
 if [[ -f /etc/install-pam-ldap ]]; then
 	. /etc/install-pam-ldap
 fi
@@ -64,19 +61,3 @@ elif [[ $YUM ]]; then
   service nslcd restart
 
 fi
-
-IFS=$'\n' read -d '' -ra admin_users_a <<< "$ADMIN_USERS" || true
-for i in "${admin_users_a[@]}"; do
-	userid="${i%% *}"
-	realname="${i#* }"
-	if [[ $APT ]]; then
-		# We can and must do this on one line, else we get prompted
-		getent passwd $userid || adduser --disabled-password --gecos "${realname}" $userid
-	elif [[ $YUM ]]; then
-		# We can't do it on one line, but adduser doesn't complain
-		getent passwd $userid || adduser $userid
-		usermod --lock $userid
-		usermod --comment "${realname}" $userid
-	fi
-	usermod -aG ${SUDO} $userid
-done
