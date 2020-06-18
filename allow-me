@@ -15,17 +15,16 @@ die() {
 
 SCRIPT_DIR=$(dirname $(readlink -f $0))
 
-if [[ -f /opt/git/admin-tools/parse-opt.sh ]]; then
-    # No short arguments
-    declare -A PO_SHORT_MAP
+[[ -f $SCRIPT_DIR/poshlib/parse-opt.sh ]] || die 1 "Could not find poshlib"
+# No short arguments
+declare -A PO_SHORT_MAP
 
-    # All long arguments are lowercase versions of their corresponding envars
-    declare -A PO_LONG_MAP
-    PO_LONG_MAP["comment:"]="COMMENT"
+# All long arguments are lowercase versions of their corresponding envars
+declare -A PO_LONG_MAP
+PO_LONG_MAP["comment:"]="COMMENT"
 
-    # parse command line options
-    . /opt/git/admin-tools/parse-opt.sh
-fi
+# parse command line options
+. $SCRIPT_DIR/poshlib/parse-opt.sh
 
 if [[ ! $COMMENT ]]; then
     COMMENT="added by $0"
