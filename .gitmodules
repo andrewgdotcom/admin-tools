@@ -1,0 +1,3 @@
+[submodule "poshlib"]
+	path = poshlib
+	url = https://github.com/andrewgdotcom/poshlib
