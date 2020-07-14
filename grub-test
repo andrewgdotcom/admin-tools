@@ -7,7 +7,7 @@ drives=$(ls /dev/nvme?n? /dev/sd[abcdefghijklmnopqrstuvwxyz] 2> /dev/null)
 
 for drive in $drives; do
     echo -n "$drive "
-    if dd bs=512 count=1 if=/dev/nvme1n1 2>/dev/null | grep -q GRUB; then
+    if dd bs=512 count=1 if=$drive 2>/dev/null | grep -q GRUB; then
         echo grub installed
     else
         echo GRUB NOT INSTALLED
