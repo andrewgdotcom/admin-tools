@@ -1,30 +1,13 @@
 #!/bin/bash
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+. ${SCRIPT_DIR}/poshlib/poshlib.sh
+use swine
+use parse-opt
 
 # A quick script to explicitly allow ssh connections in from the calling IP
 
-set -euo pipefail
-err_report() {
-    echo "errexit on line $(caller)" >&2
-}
-trap err_report ERR
-
-die() {
-    echo $2 >&2
-    exit $1
-}
-
-SCRIPT_DIR=$(dirname $(readlink -f $0))
-
-[[ -f $SCRIPT_DIR/poshlib/parse-opt.sh ]] || die 1 "Could not find poshlib"
-# No short arguments
-declare -A PO_SHORT_MAP
-
-# All long arguments are lowercase versions of their corresponding envars
-declare -A PO_LONG_MAP
-PO_LONG_MAP["comment:"]="COMMENT"
-
-# parse command line options
-. $SCRIPT_DIR/poshlib/parse-opt.sh
+PO_SIMPLE_PARAMS="COMMENT"
+eval $(parse-opt-simple)
 
 if [[ ! $COMMENT ]]; then
     COMMENT="added by $0"
@@ -34,7 +17,7 @@ if [[ $@ ]]; then
     for source in $@; do
         ufw allow to any app OpenSSH from "${source}" comment "${COMMENT}"
     done
-elif [[ $SSH_CONNECTION ]]; then
+elif [[ ${SSH_CONNECTION:-} ]]; then
     ssh_connection_array=($SSH_CONNECTION)
     ufw allow to any app OpenSSH from "${ssh_connection_array[0]}" comment "${COMMENT}"
 else
