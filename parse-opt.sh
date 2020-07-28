@@ -171,3 +171,6 @@ __PO__parse_argv() {
 
 eval $(__PO__canonicalize_argv "$@")
 eval $(__PO__parse_argv "$@")
+
+echo "This version of parse-opt is unmaintained. Please use the one from" >&2
+echo "https://github.com/andrewgdotcom/poshlib instead" >&2

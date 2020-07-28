@@ -77,8 +77,3 @@ User-authentication tools
     A tool to configure dropbear+monkeysphere to allow remote ssh connections
     during boot. Useful for unlocking crypted volumes at boot time, remotely.
 
-Script tools
-------------
-
-- parse-opt.sh
-    A tool to help other scripts parse getopt-style command line arguments.
