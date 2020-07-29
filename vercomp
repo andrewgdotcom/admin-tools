@@ -1,14 +1,9 @@
 #!/bin/bash
-
-# A version string comparator blatantly stolen from stack overflow
-# https://stackoverflow.com/questions/4023830/how-to-compare-two-strings-in-dot-separated-version-format-in-bash
-
-# Exits with code 0 for equality, 1 when $1 > $2 and 2 when $1 < $2
-
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 . $SCRIPT_DIR/poshlib/poshlib.sh
+
+# This is just a wrapper script for the vercomp() function
+
 USEPATH="$USEPATH:$SCRIPT_DIR"
-
 use vercomp
-
 vercomp "$@"
