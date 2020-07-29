@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# Tool for extracting information from an elasticsearch-style yaml file.
+# Requires @kislyuk's yq (the one from python-pip, not the other one)
+
+_KISLYUK_YQ=/usr/local/bin/yq
+if [[ ! -x $_KISLYUK_YQ ]] || ! $_KISLYUK_YQ --help | grep -q kislyuk/yq; then
+    echo "yaml-elastic requires https://github.com/kislyuk/yq under /usr/local/bin" >&2
+    echo "This can be installed using python3-pip" >&2
+    exit 1
+fi
+
+yaml_expand_forms() { (
+    SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+    . $SCRIPT_DIR/poshlib/poshlib.sh
+    use swine
+
+    # recursively enumerate all the collapsed forms of a json entity
+    # we leave out the outermost double quotes at each stage, to save time
+    # adding and then re-stripping them at each recursion stage
+    # this means that the final output is missing its outermost double quotes,
+    # so we have to add them afterwards
+    local head=${1%%.*}
+    local tail=${1#*.}
+    if [[ "$tail" != "$1" ]]; then
+        for tail_form in $(yaml_expand_forms $tail); do
+            echo $head'"."'$tail_form
+            echo $head.$tail_form
+        done
+    else
+        echo "$head"
+    fi
+) }
+
+yaml_extract() { (
+    SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+    . $SCRIPT_DIR/poshlib/poshlib.sh
+    use swine
+
+    # perform a recursive tree search for all collapsed forms of the search term
+    local key="$1"
+    local file="$2"
+    local result=null
+    for searchterm in $(yaml_expand_forms "$key"); do
+        # remember to add the double quotes, see expand_forms above
+        result=$($_KISLYUK_YQ '."'$searchterm'"' "$file")
+        if [[ "$result" != null ]]; then
+            # Strip quotes from the value
+            result="${result#\"}"
+            result="${result%\"}"
+            echo $result
+            return
+        fi
+    done
+    echo
+) }
+
+yaml_replace() { (
+    SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+    . $SCRIPT_DIR/poshlib/poshlib.sh
+    use swine
+
+    # perform a recursive tree search for all collapsed forms of the search term
+    local key=${1%%=*}
+    local value="${1#*=}"
+    local file=$2
+    local result=null
+    for searchterm in $(yaml_expand_forms "$key"); do
+        # remember to add the double quotes, see expand_forms above
+        result=$($_KISLYUK_YQ '."'$searchterm'"' "$file")
+        if [[ "$result" != null ]]; then
+            cp "$file" "${file}.bak"
+            $_KISLYUK_YQ -y '."'$searchterm'" |= "'"$value"'"' "${file}.bak" > "$file"
+            return
+        fi
+    done
+) }
+

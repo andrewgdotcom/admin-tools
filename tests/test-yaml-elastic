@@ -1,0 +1,73 @@
+#!/bin/bash
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+. $SCRIPT_DIR/../poshlib/poshlib.sh
+USEPATH="$USEPATH:$SCRIPT_DIR/.."
+use yaml-elastic
+
+testyaml_extract () {
+    op=$(yaml_extract $1 $tmpfile)
+    if [[ $op != $2 ]]
+    then
+        echo "FAIL: Expected '$2', Actual '$op', Arg1 '$1'"
+    else
+        echo "Pass: '$1' '$op'"
+    fi
+}
+
+testyaml_replace () {
+    yaml_replace "$1=$2" $tmpfile
+    op=$(yaml_extract $1 $tmpfile)
+    if [[ $op != $2 ]]
+    then
+        echo "FAIL: Expected '$2', Actual '$op', Arg1 '$1', Arg2 '$2'"
+    else
+        echo "Pass: '$1' '$op' '$2'"
+    fi
+}
+
+tmpfile=$(mktemp)
+cat <<EOF >$tmpfile
+one.one: 1.1
+one:
+    two: "1.2"
+two:
+    one: 2.1
+    two: "2.2"
+three:
+    one.one: 3.1.1
+three.one.two: 3.1.2
+three.one:
+    three: 3.1.3
+EOF
+
+# Run tests
+# argument table format:
+# testarg1   testarg2     expected_output
+echo "The following tests should pass"
+while read -r test
+do
+    testyaml_extract $test
+done << EOF
+one.one	1.1
+one.two	1.2
+two.one	2.1
+two.two 2.2
+three.one.one 3.1.1
+three.one.two 3.1.2
+three.one.three 3.1.3
+EOF
+
+while read -r test
+do
+    testyaml_replace $test
+done << EOF
+one.one	1.1.replaced
+one.two	1.2.replaced
+two.one	2.1.replaced
+two.two 2.2.replaced
+three.one.one 3.1.1.replaced
+three.one.two 3.1.2.replaced
+three.one.three 3.1.3.replaced
+EOF
+
+rm $tmpfile
