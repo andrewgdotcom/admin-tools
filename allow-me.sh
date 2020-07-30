@@ -9,11 +9,9 @@ allow-me() { (
     PO_SIMPLE_PARAMS="COMMENT"
     eval $(parse-opt-simple)
     
-    if [[ ! $COMMENT ]]; then
-        COMMENT="added by $0"
-    fi
+    : ${COMMENT:="added by $0"}
     
-    if [[ $@ ]]; then
+    if [[ "$@" ]]; then
         for source in $@; do
             ufw allow to any app OpenSSH from "${source}" comment "${COMMENT}"
         done
