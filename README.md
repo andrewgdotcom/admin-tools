@@ -3,6 +3,14 @@ admin-tools
 
 An eclectic selection of system administration tools.
 
+admin-tools uses the poshlib submodule (https://github.com/andrewgdotcom/poshlib), so to clone this repo you should use:
+
+```
+git clone --recurse-submodules https://github.com/andrewgdotcom/admin-tools
+```
+
+An ever-increasing number of the tools are also usable as poshlib modules.
+
 General system administration
 -----------------------------
 
@@ -76,4 +84,3 @@ User-authentication tools
 - dropbear-monkeysphere
     A tool to configure dropbear+monkeysphere to allow remote ssh connections
     during boot. Useful for unlocking crypted volumes at boot time, remotely.
-
