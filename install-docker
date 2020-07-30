@@ -12,9 +12,7 @@ PRIMARY_INTERFACE=$(route -n | grep ^0.0.0.0 | head -1 | awk '{print $8}')
 ZEROTIER_INTERFACES=$(zerotier-cli listnetworks |grep PRIVATE|awk '{print $8}')
 
 # default to disabling iptables
-if [[ ! $DISABLE_IPTABLES ]]; then
-    DISABLE_IPTABLES=true
-fi
+: ${DISABLE_IPTABLES:=true}
 
 apt-repo add docker "https://download.docker.com/linux/ubuntu xenial stable" https://download.docker.com/linux/ubuntu/gpg || true
 apt-get update
@@ -37,11 +35,8 @@ if [[ -d "$DATA_DIR" ]]; then
     fi
 fi
 
-if [[ $NO_DOCKER_NETWORKING ]]; then
+if [[ ${NO_DOCKER_NETWORKING:-} ]]; then
     echo "Not configuring docker networking"
-    if [[ $TMPDIR ]]; then
-        rm -rf $TMPDIR
-    fi
     exit 0
 fi
 
@@ -190,6 +185,3 @@ service docker start
 # Enable daily docker image cleaner job
 ln -s ${SCRIPT_DIR}/clean-images /etc/cron.daily/
 
-if [[ $TMPDIR ]]; then
-    rm -rf $TMPDIR
-fi
