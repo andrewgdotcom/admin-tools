@@ -3,10 +3,10 @@ SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 . $SCRIPT_DIR/poshlib/poshlib.sh
 USEPATH="$USEPATH:${BASH_SOURCE[0]}"
 use swine
-use yaml_elastic
+use yaml-elastic
 
 if [[ $1 == "-r" ]]; then
-    yaml_replace "$2" "$3"
+    yaml-replace "$2" "$3"
 else
-    yaml_extract "$1" "$2"
+    yaml-extract "$1" "$2"
 fi

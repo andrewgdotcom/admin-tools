@@ -10,7 +10,7 @@ if [[ ! -x $_KISLYUK_YQ ]] || ! $_KISLYUK_YQ --help | grep -q kislyuk/yq; then
     exit 1
 fi
 
-yaml_expand_forms() { (
+yaml-expand-forms() { (
     SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
     . $SCRIPT_DIR/poshlib/poshlib.sh
     use swine
@@ -23,7 +23,7 @@ yaml_expand_forms() { (
     local head=${1%%.*}
     local tail=${1#*.}
     if [[ "$tail" != "$1" ]]; then
-        for tail_form in $(yaml_expand_forms $tail); do
+        for tail_form in $(yaml-expand-forms $tail); do
             echo $head'"."'$tail_form
             echo $head.$tail_form
         done
@@ -32,7 +32,7 @@ yaml_expand_forms() { (
     fi
 ) }
 
-yaml_extract() { (
+yaml-extract() { (
     SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
     . $SCRIPT_DIR/poshlib/poshlib.sh
     use swine
@@ -41,7 +41,7 @@ yaml_extract() { (
     local key="$1"
     local file="$2"
     local result=null
-    for searchterm in $(yaml_expand_forms "$key"); do
+    for searchterm in $(yaml-expand-forms "$key"); do
         # remember to add the double quotes, see expand_forms above
         result=$($_KISLYUK_YQ '."'$searchterm'"' "$file")
         if [[ "$result" != null ]]; then
@@ -55,7 +55,7 @@ yaml_extract() { (
     echo
 ) }
 
-yaml_replace() { (
+yaml-replace() { (
     SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
     . $SCRIPT_DIR/poshlib/poshlib.sh
     use swine
@@ -65,7 +65,7 @@ yaml_replace() { (
     local value="${1#*=}"
     local file=$2
     local result=null
-    for searchterm in $(yaml_expand_forms "$key"); do
+    for searchterm in $(yaml-expand-forms "$key"); do
         # remember to add the double quotes, see expand_forms above
         result=$($_KISLYUK_YQ '."'$searchterm'"' "$file")
         if [[ "$result" != null ]]; then
