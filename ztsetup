@@ -33,13 +33,13 @@ if [[ -f ~/.ztsetup ]]; then
 	. ~/.ztsetup
 fi
 
-if [[ $1 ]]; then
+if [[ ${1:-} ]]; then
     NETWORKS="$1"
 fi
 # canonicalise
 NETWORKS=$(echo "$NETWORKS"|tr ' ,' ': ')
 
-if [[ $APT ]]; then
+if [[ ${APT:-} ]]; then
 
   # Attempt to autodetect our distribution. This should work for debian and ubuntu
   # IFF the main distribution is configured sensibly
@@ -53,7 +53,7 @@ if [[ $APT ]]; then
     apt-get update && apt-get -y install zerotier-one
   fi
 
-elif [[ $YUM ]]; then
+elif [[ ${YUM:-} ]]; then
 
   DIST=$(yum repolist | awk '/^base/ {print $2}')
 
