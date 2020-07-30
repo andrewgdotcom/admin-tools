@@ -3,26 +3,11 @@
 # A QAD script to install zerotier and automatically join a list of networks
 # We also optionally update the local /etc/hosts file
 
-set -eo pipefail
-err_report() {
-    echo "errexit on line $(caller)" >&2
-}
-trap err_report ERR
-
-die() {
-    echo $2 >&2
-    exit $1
-}
-
-SCRIPT_DIR=$(dirname $(readlink -f $0))
-
-if [[ -x $SCRIPT_DIR/apt-repo ]]; then
-    ADMIN_TOOLS=$SCRIPT_DIR
-else
-    tempdir=$(mktemp -d)
-    (cd $tempdir && git clone --recurse-submodules https://github.com/andrewgdotcom/admin-tools)
-    ADMIN_TOOLS=$tempdir/admin-tools
-fi
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+. $SCRIPT_DIR/poshlib/poshlib.sh
+USEPATH="$USEPATH:$SCRIPT_DIR"
+use swine
+use apt-repo
 
 if [[ -d /etc/apt ]]; then
 	APT=true
@@ -63,15 +48,8 @@ if [[ $APT ]]; then
   if zerotier-cli info 2>/dev/null; then
 	echo "Already installed"
   else
-    if [[ -x $ADMIN_TOOLS/apt-repo ]]; then
-        $ADMIN_TOOLS/apt-repo add zerotier "http://download.zerotier.com/debian/$DIST $DIST main" \
-        https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/doc/contact%40zerotier.com.gpg
-    else
-        apt-key --keyring /etc/apt/trusted.gpg.d/zerotier.gpg adv --keyserver pool.sks-keyservers.net --recv-key 1657198823E52A61
-        cat > /etc/apt/sources.list.d/zerotier.list <<EOF
-deb http://download.zerotier.com/debian/$DIST $DIST main
-EOF
-    fi
+    apt-repo add zerotier "http://download.zerotier.com/debian/$DIST $DIST main" \
+      https://raw.githubusercontent.com/zerotier/ZeroTierOne/master/doc/contact%40zerotier.com.gpg
     apt-get update && apt-get -y install zerotier-one
   fi
 
