@@ -4,9 +4,6 @@ if ! which curl >&/dev/null; then
 fi
 
 apt-repo() { (
-  SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-  . $SCRIPT_DIR/poshlib/poshlib.sh
-  USEPATH="$USEPATH:$SCRIPT_DIR"
   use swine
 
   CURL_FLAGS="-LSsf"

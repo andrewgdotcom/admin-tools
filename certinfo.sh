@@ -1,6 +1,4 @@
 certinfo() { (
-  SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-  . $SCRIPT_DIR/poshlib/poshlib.sh
   use swine
 
   # X509 tooling is crap. keytool is crap. openssl is crap. It's all crap.

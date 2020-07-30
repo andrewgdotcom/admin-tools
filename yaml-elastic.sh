@@ -11,8 +11,6 @@ if [[ ! -x $_KISLYUK_YQ ]] || ! $_KISLYUK_YQ --help | grep -q kislyuk/yq; then
 fi
 
 yaml-expand-forms() { (
-    SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-    . $SCRIPT_DIR/poshlib/poshlib.sh
     use swine
 
     # recursively enumerate all the collapsed forms of a json entity
@@ -33,8 +31,6 @@ yaml-expand-forms() { (
 ) }
 
 yaml-extract() { (
-    SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-    . $SCRIPT_DIR/poshlib/poshlib.sh
     use swine
 
     # perform a recursive tree search for all collapsed forms of the search term
@@ -56,8 +52,6 @@ yaml-extract() { (
 ) }
 
 yaml-replace() { (
-    SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-    . $SCRIPT_DIR/poshlib/poshlib.sh
     use swine
 
     # perform a recursive tree search for all collapsed forms of the search term

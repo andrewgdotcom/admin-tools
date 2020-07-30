@@ -1,8 +1,6 @@
 # A quick script to explicitly allow ssh connections in from the calling IP
     
 allow-me() { (
-    SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-    . ${SCRIPT_DIR}/poshlib/poshlib.sh
     use swine
     use parse-opt
     
