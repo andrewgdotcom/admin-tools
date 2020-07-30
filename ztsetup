@@ -97,6 +97,6 @@ if [[ -f ~/.zthosts ]]; then
 	cat ~/.zthosts >> /etc/hosts
 fi
 
-if [[ -n "$tempdir" ]]; then
+if [[ -n "${tempdir:-}" ]]; then
     rm -rf "$tempdir"
 fi
