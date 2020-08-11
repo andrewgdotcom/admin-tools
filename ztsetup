@@ -5,7 +5,7 @@
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 . $SCRIPT_DIR/poshlib/poshlib.sh || exit 1
-use-from "$SCRIPT_DIR"
+use-from .
 use swine
 use apt-repo
 

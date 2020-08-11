@@ -4,6 +4,6 @@ SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 
 # This is just a wrapper script for the vercomp() function
 
-use-from "$SCRIPT_DIR"
+use-from .
 use vercomp
 vercomp "$@"

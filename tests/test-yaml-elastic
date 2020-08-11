@@ -1,11 +1,11 @@
 #!/bin/bash
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 . $SCRIPT_DIR/../poshlib/poshlib.sh || exit 1
-use-from "$SCRIPT_DIR/.."
+use-from ..
 use yaml-elastic
 
-testyaml_extract () {
-    op=$(yaml_extract $1 $tmpfile)
+testyaml-extract () {
+    op=$(yaml-extract $1 $tmpfile)
     if [[ $op != $2 ]]
     then
         echo "FAIL: Expected '$2', Actual '$op', Arg1 '$1'"
@@ -14,9 +14,9 @@ testyaml_extract () {
     fi
 }
 
-testyaml_replace () {
-    yaml_replace "$1=$2" $tmpfile
-    op=$(yaml_extract $1 $tmpfile)
+testyaml-replace () {
+    yaml-replace "$1=$2" $tmpfile
+    op=$(yaml-extract $1 $tmpfile)
     if [[ $op != $2 ]]
     then
         echo "FAIL: Expected '$2', Actual '$op', Arg1 '$1', Arg2 '$2'"
@@ -46,7 +46,7 @@ EOF
 echo "The following tests should pass"
 while read -r test
 do
-    testyaml_extract $test
+    testyaml-extract $test
 done << EOF
 one.one	1.1
 one.two	1.2
@@ -59,7 +59,7 @@ EOF
 
 while read -r test
 do
-    testyaml_replace $test
+    testyaml-replace $test
 done << EOF
 one.one	1.1.replaced
 one.two	1.2.replaced
