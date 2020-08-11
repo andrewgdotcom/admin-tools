@@ -4,7 +4,7 @@
 # We also optionally update the local /etc/hosts file
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-. $SCRIPT_DIR/poshlib/poshlib.sh
+. $SCRIPT_DIR/poshlib/poshlib.sh || exit 1
 USEPATH="$USEPATH:$SCRIPT_DIR"
 use swine
 use apt-repo
