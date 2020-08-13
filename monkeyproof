@@ -3,7 +3,7 @@
 # It *should* be idempotent...
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-. ${SCRIPT_DIR}/poshlib/poshlib.sh
+. ${SCRIPT_DIR}/poshlib/poshlib.sh || exit 1
 use swine
 
 APT=
