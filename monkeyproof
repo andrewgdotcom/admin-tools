@@ -2,12 +2,12 @@
 # Quick and dirty script to configure monkeysphere and pam-ssh-agent-auth
 # It *should* be idempotent...
 
-set -eo pipefail
-err_report() {
-    echo "errexit on line $(caller)" >&2
-}
-trap err_report ERR
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+. ${SCRIPT_DIR}/poshlib/poshlib.sh
+use swine
 
+APT=
+YUM=
 if [[ -d /etc/apt ]]; then
 	APT=true
 	SUDO=sudo
@@ -58,7 +58,7 @@ elif [[ $YUM ]]; then
     echo "RHEL/CentOS 7 sticky tape..."
     yum install -y yum-plugin-copr
     yum copr enable -y icon/lfit
-    yum install -y gnupg22-static
+    yum install -y gnupg22-static patch
     yum -y --setopt=skip_missing_names_on_install=False install monkeysphere
     if ! egrep -q /opt/gnupg22/bin /usr/share/monkeysphere/defaultenv; then
         cat <<'EOF' >> /usr/share/monkeysphere/defaultenv
@@ -86,7 +86,7 @@ EOF
     # And now perform a filthy, unforgivable patch against monkeysphere.
     # THIS WILL BREAK ON UPGRADES
     # ... but then this is CentOS 7 so it won't be getting any.
-    patch -f -b -d/ -R -p1 <<'EOF' || echo -e "\n\nPATCH FAILED, CHECK MANUALLY\n\n"
+    patch -f -b -d/ -R -p1 <<'EOF' || die 1 "\n\nPATCH FAILED, CHECK MANUALLY\n\n"
 *** /usr/share/monkeysphere/ma/add_certifier 2020-03-20 16:40:50.976038098 +0000
 --- /usr/share/monkeysphere/ma/add_certifier.bak 2016-06-27 02:32:33.000000000 +0000
 *************** else
