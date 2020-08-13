@@ -97,7 +97,7 @@ done
 centos_safe_ufw allow to any port 9993 comment zerotier
 
 # This is dangerous. Bloody CentOS
-ufw enable <<< y || ufw enable <<< y
+ufw enable <<< y || ufw enable <<< y || ufw enable <<< y
 
 for network in $NETWORKS; do
 
@@ -142,9 +142,9 @@ for network in $NETWORKS; do
 done
 
 # And try to delete all instances of generic ssh access
-ufw delete allow $SSH_PROFILE
-ufw delete allow 22
-ufw delete allow 22/tcp
+centos_safe_ufw delete allow $SSH_PROFILE
+centos_safe_ufw delete allow 22
+centos_safe_ufw delete allow 22/tcp
 
 echo "Current firewall status - check for sanity"
 
