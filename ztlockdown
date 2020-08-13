@@ -13,17 +13,15 @@
 # WHITELIST is a newline- or comma-separated list of hosts that are considered
 # secure and should have ssh access.
 
-set -eo pipefail
-err_report() {
-    echo "errexit on line $(caller)" >&2
-}
-trap err_report ERR
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+. ${SCRIPT_DIR}/poshlib/poshlib.sh || exit 1
+use swine
 
 ### TODO: why does the first "ufw allow" on CentOS throw "ERROR: problem running"?
 centos_safe_ufw() {
     ufw $* || (
         echo "Retrying in case of CentOS stupidity..."
-        ufw $* || exit 3
+        ufw $* || die 3 "CentOS threw errors too many times in succession"
     )
 }
 
@@ -34,6 +32,8 @@ if [[ $(whoami) != "root" ]]; then
 	exec sudo SSH_CONNECTION="${SSH_CONNECTION}" $0
 fi
 
+APT=
+YUM=
 if [[ -d /etc/apt ]]; then
 	APT=true
 	SUDO=sudo
@@ -41,8 +41,7 @@ elif [[ -d /etc/yum ]]; then
 	YUM=true
 	SUDO=wheel
 else
-	echo "Distribution not supported!"
-	exit -1
+	die 99 "Distribution not supported!"
 fi
 
 NETWORKS=""
@@ -64,7 +63,7 @@ if [[ $APT ]]; then
 	if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
 		apt-get update
 	fi
-	apt-get install ufw || exit 2
+	apt-get install ufw
   fi
 elif [[ $YUM ]]; then
   yum -y --setopt=skip_missing_names_on_install=False install ufw
@@ -75,15 +74,11 @@ if ufw app info OpenSSH >&/dev/null ; then
 elif ufw app info SSH >&/dev/null ; then
   SSH_PROFILE="SSH"
 else
-  echo "SSH UFW profile not found. Aborting"
-  exit 8
+  die 8 "SSH UFW profile not found. Aborting"
 fi
 
 remote_host=${SSH_CONNECTION%% *}
-if [ ! ${remote_host} ]; then
-	echo "Cannot whitelist current SSH connection. It is unsafe to continue."
-	exit 3
-fi
+[ -n "${remote_host}" ] || die 3 "Cannot whitelist current SSH connection. It is unsafe to continue."
 
 # Add the current remote host to the whitelist
 WHITELIST="${remote_host}_Autodetected_ssh_connection
