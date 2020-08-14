@@ -3,22 +3,15 @@
 # A script to wait for a list of ssh servers to come up
 # Shamelessly stolen from https://serverfault.com/a/995377/254476
 
-die() {
-    echo -e $2 >&2
-    exit $1
-}
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+. $SCRIPT_DIR/poshlib/poshlib.sh
+use swine
 
-HOSTS=$1
-if [[ -z "$HOSTS" ]]; then
-    die 1 "Usage: $0 <host>[:<port>][,<host>[:<port]][,...] [<retries> [<retry_wait>]]"
-fi
-HOSTS=$(tr , " " <<< $HOSTS)
+[[ "${1:-}" ]] || die 1 "Usage: $0 <host>[:<port>][,<host>[:<port]][,...] [<retries> [<retry_wait>]]"
+HOSTS=$(tr , " " <<< $1)
 
-retries=$2
-[[ $retries ]] || retries=30
-
-retry_wait=$3
-[[ $retry_wait ]] || retry_wait=10
+retries=${2:-30}
+retry_wait=${3:-10}
 
 for host in $HOSTS; do
   port=${host#*:}
@@ -26,10 +19,14 @@ for host in $HOSTS; do
   [[ $port && $port != $host ]] || port=22
 
   result=1 # 0 upon success
-  while :; do 
-    # Disable all forms of authentication as we don't want to waste time
-    status=$(SSH_AUTH_SOCK=/dev/null ssh -i /dev/null -l "" -o BatchMode=yes -o ConnectTimeout=5 ${host} -P ${port} echo ok 2>&1)
-    result=$?
+  while :; do
+    status=$(
+        set +e
+        # Disable all forms of authentication as we don't want to waste time
+        SSH_AUTH_SOCK=/dev/null ssh -i /dev/null -l "" -o BatchMode=yes -o ConnectTimeout=5 ${host} -P ${port} echo ok 2>&1
+        echo result=$?
+    )
+    result="${status#*result=}"
     if [[ $result -eq 0 ]]; then
         # this is not really expected but it could happen
         echo "logged in anonymously to $host"
