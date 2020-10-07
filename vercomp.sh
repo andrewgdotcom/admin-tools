@@ -8,11 +8,10 @@ vercomp() { (
 
     if [[ $1 == $2 ]]
     then
-        return 0
+        exit 0
     fi
-    local IFS=.
-    local ver1=($1)
-    local ver2=($2)
+    local ver1=( $(IFS=.; echo $1) )
+    local ver2=( $(IFS=.; echo $2) )
     # fill empty fields in ver1 with zeros
     for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
     do
@@ -27,11 +26,11 @@ vercomp() { (
         fi
         if ((10#${ver1[$i]} > 10#${ver2[$i]}))
         then
-            return 1
+            exit 1
         fi
         if ((10#${ver1[$i]} < 10#${ver2[$i]}))
         then
-            return 2
+            exit 2
         fi
     done
     exit 0
