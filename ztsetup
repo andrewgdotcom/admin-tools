@@ -55,7 +55,7 @@ if [[ ${APT:-} ]]; then
 
 elif [[ ${YUM:-} ]]; then
 
-  DIST=$(yum repolist | awk '/^base/ {print $2}')
+  DIST=$(yum repolist | awk '/^!?base/ {print $2}')
 
   if [[ $DIST == "CentOS-7" || $DIST == "RHEL-7" ]]; then
     URL="https://download.zerotier.com/redhat/el/7"

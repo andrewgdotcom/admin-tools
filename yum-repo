@@ -57,7 +57,7 @@ case "$1" in
     exit 2
   fi
 
-  DIST=$(yum repolist | awk '/^base/ {print $2}')
+  DIST=$(yum repolist | awk '/^!?base/ {print $2}')
   cat <<EOF >$SOURCES_FILE
 
 # Created by $0 with: $BASENAME add $2 "$3" $4
