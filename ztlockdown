@@ -21,6 +21,7 @@ use swine
 centos_safe_ufw() {
     ufw $* || (
         echo "Retrying in case of CentOS stupidity..."
+        sleep 5 # I suspect a race condition but can't prove it. ABG 20201012
         ufw $* || die 3 "CentOS threw errors too many times in succession"
     )
 }
