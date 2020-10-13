@@ -85,9 +85,7 @@ remote_host=${SSH_CONNECTION%% *}
 WHITELIST="${remote_host}_Autodetected_ssh_connection
 ${WHITELIST}"
 
-# Now whitelist our friendly hosts BEFORE enabling ufw. Note that ufw
-# maintains a latent configuration while disabled, but will not print
-# it until after it has been enabled. This is evil and we must beware.
+# Now whitelist our friendly hosts BEFORE enabling ufw.
 
 for host in $WHITELIST; do
 	echo "Whitelisting ${host%%_*} (${host#*_})"
