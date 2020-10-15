@@ -17,17 +17,19 @@ SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 . ${SCRIPT_DIR}/poshlib/poshlib.sh || exit 1
 use swine
 
+UFW_RETRY_LIMIT=5
+
 ### TODO: why does the first "ufw allow" on CentOS throw "ERROR: problem running"?
 centos_safe_ufw() {
-    ufw $* || (
-        echo "Retrying in case of CentOS stupidity..."
-        sleep 5 # I suspect a race condition but can't prove it. ABG 20201012
-        ufw $* || die 3 "CentOS threw errors too many times in succession"
-    )
+    retry_count=0
+    while [[ $retry_count -lt $UFW_RETRY_LIMIT ]] && ! ufw $*; do
+        let ++retry_count
+    done
+    [[ $retry_count -lt $UFW_RETRY_LIMIT ]] || die 3 "ufw threw errors too many times in succession"
 }
 
 if [[ $(whoami) != "root" ]]; then
-	# If we are not root, become root. Non-root invocation is necessary
+	# If we are not root, become root. Non-root invocation is useful
 	# because most methods of obtaining root reset the environment.
 	# Duplicate any required envars on the other side of the sudo.
 	exec sudo SSH_CONNECTION="${SSH_CONNECTION}" $0
