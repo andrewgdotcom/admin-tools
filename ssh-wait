@@ -44,7 +44,9 @@ for host in $HOSTS; do
     if [[ $retries -eq 0 ]]; then
         die 2 "Too many retries; aborting"
     fi
+    echo -n "."
     sleep $retry_wait
   done
 done
+echo
 exit 0
