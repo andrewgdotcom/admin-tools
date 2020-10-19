@@ -59,14 +59,37 @@ yaml-replace() { (
     local value="${1#*=}"
     local file=$2
     local result=null
+    local modified=
     for searchterm in $(yaml-expand-forms "$key"); do
         # remember to add the double quotes, see expand_forms above
         result=$($_KISLYUK_YQ '."'$searchterm'"' "$file")
         if [[ "$result" != null ]]; then
             cp "$file" "${file}.bak"
             $_KISLYUK_YQ -y '."'$searchterm'" |= "'"$value"'"' "${file}.bak" > "$file"
+            modified=true
+            break
+        fi
+    done
+    if [[ ! $modified && "${3:-}" == "or-add" ]]; then
+        cp "$file" "${file}.bak"
+        $_KISLYUK_YQ -y '."'$key'" |= "'"$value"'"' "${file}.bak" > "$file"
+    fi
+) }
+
+yaml-delete() { (
+    use swine
+
+    # perform a recursive tree search for all collapsed forms of the search term
+    local key=$1
+    local file=$2
+    local result=null
+    for searchterm in $(yaml-expand-forms "$key"); do
+        # remember to add the double quotes, see expand_forms above
+        result=$($_KISLYUK_YQ '."'$searchterm'"' "$file")
+        if [[ "$result" != null ]]; then
+            cp "$file" "${file}.bak"
+            $_KISLYUK_YQ -y 'del(."'$searchterm'")' "${file}.bak" > "$file"
             return
         fi
     done
 ) }
-
