@@ -100,7 +100,7 @@ EOF
     local numcerts=$(echo "$transcript" | egrep --count "^-----BEGIN CERTIFICATE-----")
     for count in $(seq 1 $numcerts); do
         local output=$(echo "$transcript" | perl -e '$count='$count'; while(<>) { if(/-----BEGIN CERTIFICATE-----/) {$count--}; if($count==0) {print;} }')
-        json=("${json[@]}" "\"cert$count\": $(pem2json "$output")")
+        json=("${json[@]:-}" "\"cert$count\": $(pem2json "$output")")
     done
     echo -n "\"$url\": { \"_type\": \"url\", " $(IFS=, ; echo "${json[*]}") " }"
   }
@@ -111,7 +111,7 @@ EOF
     local aliases=$(keytool -keystore $keystore -list </dev/null 2>/dev/null|grep -C1 "Certificate fingerprint"|head -1|awk -F, '{print $1}')
     for alias in $aliases; do
         local output=$(keytool -keystore $keystore -exportcert -rfc -alias $alias </dev/null 2>/dev/null)
-        json=("${json[@]}" "\"$alias\": $(pem2json "$output")")
+        json=("${json[@]:-}" "\"$alias\": $(pem2json "$output")")
     done
     echo -n "\"$keystore\": { \"_type\": \"jks\", " $(IFS=, ; echo "${json[*]}") " }"
   }
@@ -122,7 +122,7 @@ EOF
     local numcerts=$(egrep --count "^-----BEGIN CERTIFICATE-----" $pemfile)
     for count in $(seq 1 $numcerts); do
         local output=$(perl -e '$count='$count'; while(<>) { if(/-----BEGIN CERTIFICATE-----/) {$count--}; if($count==0) {print;} }' < $pemfile)
-        json=("${json[@]}" "\"cert$count\": $(pem2json "$output")")
+        json=("${json[@]:-}" "\"cert$count\": $(pem2json "$output")")
     done
     echo -n "\"$pemfile\": { \"_type\": \"pem\", " $(IFS=, ; echo "${json[*]}") " }"
   }
@@ -136,7 +136,7 @@ EOF
     [[ $1 ]] || usage
     json_total=()
     for url in $*; do
-        json_total=("${json_total[@]}" "$(parseconn $url)")
+        json_total=("${json_total[@]:-}" "$(parseconn $url)")
     done
     echo "{ " $(IFS=, ; echo "${json_total[*]}") " }"
     ;;
@@ -147,13 +147,13 @@ EOF
     json_total=()
     for filename in $*; do
         if file $filename | grep -q "Java KeyStore"; then
-            json_total=("${json_total[@]}" "$(parsejks $filename)")
+            json_total=("${json_total[@]:-}" "$(parsejks $filename)")
         elif egrep -q "^-----BEGIN CERTIFICATE-----" $filename; then
-            json_total=("${json_total[@]}" "$(parsepem $filename)")
+            json_total=("${json_total[@]:-}" "$(parsepem $filename)")
         elif egrep -q "^-----BEGIN (ENCRYPTED )?PRIVATE KEY-----" $filename; then
-            json_total=("${json_total[@]}" "\"$filename\": { \"_type\": \"privkey\"}")
+            json_total=("${json_total[@]:-}" "\"$filename\": { \"_type\": \"privkey\"}")
         else
-            json_total=("${json_total[@]}" "\"$filename\": { \"_type\": \"unknown\"}")
+            json_total=("${json_total[@]:-}" "\"$filename\": { \"_type\": \"unknown\"}")
         fi
     done
     echo "{ " $(IFS=, ; echo "${json_total[*]}") " }"
