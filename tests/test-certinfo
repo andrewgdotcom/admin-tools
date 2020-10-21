@@ -1,0 +1,7 @@
+#!/bin/bash
+. $(dirname "${BASH_SOURCE[0]}")/../poshlib/poshlib.sh || exit 1
+use swine
+use-from ..
+use certinfo
+
+[[ $(certinfo probe https://andrewg.com | jq . | grep "CN = andrewg.com" | wc -c) == 37 ]] || die 2 "Unexpected number of characters output"
