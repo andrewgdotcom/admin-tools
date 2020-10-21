@@ -102,7 +102,7 @@ EOF
         local output=$(echo "$transcript" | perl -e '$count='$count'; while(<>) { if(/-----BEGIN CERTIFICATE-----/) {$count--}; if($count==0) {print;} }')
         json=("${json[@]:-}" "\"cert$count\": $(pem2json "$output")")
     done
-    echo -n "\"$url\": { \"_type\": \"url\", " $(IFS=, ; echo "${json[*]}") " }"
+    echo -n "\"$url\": { \"_type\": \"url\", " $(IFS=, ; echo "${json[*]:-}") " }"
   }
 
   parsejks() {
@@ -113,7 +113,7 @@ EOF
         local output=$(keytool -keystore $keystore -exportcert -rfc -alias $alias </dev/null 2>/dev/null)
         json=("${json[@]:-}" "\"$alias\": $(pem2json "$output")")
     done
-    echo -n "\"$keystore\": { \"_type\": \"jks\", " $(IFS=, ; echo "${json[*]}") " }"
+    echo -n "\"$keystore\": { \"_type\": \"jks\", " $(IFS=, ; echo "${json[*]:-}") " }"
   }
 
   parsepem() {
@@ -124,7 +124,7 @@ EOF
         local output=$(perl -e '$count='$count'; while(<>) { if(/-----BEGIN CERTIFICATE-----/) {$count--}; if($count==0) {print;} }' < $pemfile)
         json=("${json[@]:-}" "\"cert$count\": $(pem2json "$output")")
     done
-    echo -n "\"$pemfile\": { \"_type\": \"pem\", " $(IFS=, ; echo "${json[*]}") " }"
+    echo -n "\"$pemfile\": { \"_type\": \"pem\", " $(IFS=, ; echo "${json[*]:-}") " }"
   }
 
   ####
@@ -138,7 +138,7 @@ EOF
     for url in $*; do
         json_total=("${json_total[@]:-}" "$(parseconn $url)")
     done
-    echo "{ " $(IFS=, ; echo "${json_total[*]}") " }"
+    echo "{ " $(IFS=, ; echo "${json_total[*]:-}") " }"
     ;;
 
   list)
@@ -156,7 +156,7 @@ EOF
             json_total=("${json_total[@]:-}" "\"$filename\": { \"_type\": \"unknown\"}")
         fi
     done
-    echo "{ " $(IFS=, ; echo "${json_total[*]}") " }"
+    echo "{ " $(IFS=, ; echo "${json_total[*]:-}") " }"
     ;;
 
   *)
