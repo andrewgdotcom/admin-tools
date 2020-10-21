@@ -4,7 +4,7 @@
 # Shamelessly stolen from https://serverfault.com/a/995377/254476
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-. $SCRIPT_DIR/poshlib/poshlib.sh
+. $SCRIPT_DIR/poshlib/poshlib.sh || exit 1
 use swine
 
 [[ "${1:-}" ]] || die 1 "Usage: $0 <host>[:<port>][,<host>[:<port]][,...] [<retries> [<retry_wait>]]"
