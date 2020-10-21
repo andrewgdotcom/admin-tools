@@ -1,10 +1,6 @@
 certinfo() { (
   use swine
 
-  # X509 tooling is crap. keytool is crap. openssl is crap. It's all crap.
-  # But we still have to deal with the hateful stuff. So here goes.
-  # How to make the worst tools in the known universe *usable*...
-
   usage() {
     cat <<EOF
 Usage: $0 <command> [<options> ...]
