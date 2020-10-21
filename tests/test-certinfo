@@ -4,4 +4,15 @@ use swine
 use-from ..
 use certinfo
 
-[[ $(certinfo probe https://andrewg.com | jq . | grep "CN = andrewg.com" | wc -c) == 37 ]] || die 2 "Unexpected number of characters output"
+tmpfile=$(mktemp)
+
+[[ $(certinfo probe https://andrewg.com \
+    | jq . | grep "CN = andrewg.com" | wc -c) == 37 ]] \
+        || die 2 "Unexpected number of characters output"
+
+openssl s_client -connect andrewg.com:443 > $tmpfile 2>&1 </dev/null
+[[ $(certinfo list $tmpfile \
+    | jq . | grep "CN = andrewg.com" | wc -c) == 37 ]] \
+        || die 2 "Unexpected number of characters output"
+
+rm $tmpfile
