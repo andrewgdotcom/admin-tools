@@ -6,7 +6,8 @@ use swine
 use yaml-elastic
 
 if [[ $1 == "-r" ]]; then
-    yaml-replace "$2" "$3"
+    shift
+    yaml-replace "$@"
 else
-    yaml-extract "$1" "$2"
+    yaml-extract "$@"
 fi
