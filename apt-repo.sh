@@ -22,8 +22,8 @@ avoiding the unsafe use of 'curl GPGKEY_URL | apt-key add -'
 REPO_NAME is a unique local identifier for the repo.
 
 REPO_CONFIG is the full description of the repo that should be added to the
-sources.list file, e.g. "http://ftp.debian.org/debian stable main". Since
-this will usually contain spaces, it should be enclosed in quotes.
+sources.list file, e.g. "deb http://ftp.debian.org/debian stable main".
+Since this will usually contain spaces, it must be enclosed in quotes.
 
 GPGKEY_URL is a URL from which to download the signing key of the repo.
 
@@ -59,6 +59,16 @@ EOF
     fi
 
     ARCH=$(dpkg --print-architecture)
+    # normalise whitespace
+    REPO_CONFIG=$(echo -E $REPO_CONFIG)
+    # strip any leading "deb" from REPO_CONFIG; we put it back later.
+    REPO_CONFIG="${REPO_CONFIG#deb }"
+
+    # sanity test to ensure we have a URL where we expect it
+    repo_url="${REPO_CONFIG%% *}"
+    if [[ "${repo_url%://*}" != "${repo_url}" ]]; then
+	die 3 "'$repo_url' is not a URL"
+    fi
 
     cat <<EOF >$SOURCES_FILE
 # Created by $0 with: $BASENAME add $2 "$3" $4
