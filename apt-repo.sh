@@ -66,8 +66,8 @@ EOF
 
     # sanity test to ensure we have a URL where we expect it
     repo_url="${REPO_CONFIG%% *}"
-    if [[ "${repo_url%://*}" != "${repo_url}" ]]; then
-	die 3 "'$repo_url' is not a URL"
+    if [[ "${repo_url%://*}" == "${repo_url}" ]]; then
+        die 3 "'$repo_url' is not a URL"
     fi
 
     cat <<EOF >$SOURCES_FILE
