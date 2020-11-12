@@ -36,10 +36,12 @@ PRESEED_USER_ID="Andrew Gallagher <andrewg@andrewg.com>"
 PRESEED_USER_ACCOUNT="andrewg"
 
 if [[ -f /etc/monkeyproof ]]; then
-	. /etc/monkeyproof
+    # shellcheck disable=SC1091
+    . /etc/monkeyproof
 fi
 if [[ -f ~/.monkeyproof ]]; then
-	. ~/.monkeyproof
+    # shellcheck disable=SC1090
+    . ~/.monkeyproof
 fi
 
 # Install and configure monkeysphere

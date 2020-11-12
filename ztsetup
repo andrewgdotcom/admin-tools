@@ -26,10 +26,12 @@ NETWORKS="8056c2e21c000001:world"
 #NETWORKS=$'8056c2e21c000001 world\n0000000000000000 nowhere'
 
 if [[ -f /etc/ztsetup ]]; then
-	. /etc/ztsetup
+    # shellcheck disable=SC1091
+    . /etc/ztsetup
 fi
 if [[ -f ~/.ztsetup ]]; then
-	. ~/.ztsetup
+    # shellcheck disable=SC1090
+    . ~/.ztsetup
 fi
 
 if [[ ${1:-} ]]; then

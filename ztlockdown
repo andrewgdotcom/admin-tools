@@ -24,7 +24,7 @@ UFW_RETRY_LIMIT=5
 centos_safe_ufw() {
     retry_count=0
     while [[ $retry_count -lt $UFW_RETRY_LIMIT ]] && ! ufw "$@"; do
-        let ++retry_count
+        (( ++retry_count ))
     done
     [[ $retry_count -lt $UFW_RETRY_LIMIT ]] || die 3 "ufw threw errors too many times in succession"
 }
@@ -50,10 +50,12 @@ NETWORKS=""
 WHITELIST=""
 
 if [[ -f /etc/ztlockdown ]]; then
+    # shellcheck disable=SC1091
 	. /etc/ztlockdown
 fi
 if [[ -f ~/.ztlockdown ]]; then
-	. ~/.ztlockdown
+    # shellcheck disable=SC1090
+    . ~/.ztlockdown
 fi
 
 # canonicalise
