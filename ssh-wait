@@ -4,11 +4,12 @@
 # Shamelessly stolen from https://serverfault.com/a/995377/254476
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-. $SCRIPT_DIR/poshlib/poshlib.sh || exit 1
+# shellcheck disable=SC1090
+. "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
 use swine
 
 [[ "${1:-}" ]] || die 1 "Usage: $0 <host>[:<port>][,<host>[:<port]][,...] [<retries> [<retry_wait>]]"
-HOSTS=$(tr , " " <<< $1)
+HOSTS=$(tr , " " <<< "$1")
 
 retries=${2:-30}
 retry_wait=${3:-10}
@@ -16,15 +17,15 @@ retry_wait=${3:-10}
 for host in $HOSTS; do
   port=${host#*:}
   host=${host%%:*}
-  [[ $port && $port != $host ]] || port=22
+  [[ "$port" && "$port" != "$host" ]] || port=22
 
   result=1 # 0 upon success
   while :; do
     status=$(
         set +e
         # Disable all forms of authentication as we don't want to waste time
-        SSH_AUTH_SOCK=/dev/null ssh -i /dev/null -l "" -o BatchMode=yes -o ConnectTimeout=5 ${host} -P ${port} echo ok 2>&1
-        echo result=$?
+        SSH_AUTH_SOCK=/dev/null ssh -i /dev/null -l "" -o BatchMode=yes -o ConnectTimeout=5 "${host}" -P "${port}" echo ok 2>&1
+        echo "result=$?"
     )
     result="${status#*result=}"
     if [[ $result -eq 0 ]]; then
@@ -45,7 +46,7 @@ for host in $HOSTS; do
         die 2 "Too many retries; aborting"
     fi
     echo -n "."
-    sleep $retry_wait
+    sleep "$retry_wait"
   done
 done
 echo

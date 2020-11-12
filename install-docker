@@ -1,7 +1,8 @@
 #!/bin/bash
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-. $SCRIPT_DIR/poshlib/poshlib.sh || exit 1
+# shellcheck disable=SC1090
+. "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
 use-from .
 use swine
 use apt-repo
@@ -12,7 +13,7 @@ PRIMARY_INTERFACE=$(route -n | grep ^0.0.0.0 | head -1 | awk '{print $8}')
 ZEROTIER_INTERFACES=$(zerotier-cli listnetworks |grep PRIVATE|awk '{print $8}')
 
 # default to disabling iptables
-: ${DISABLE_IPTABLES:=true}
+: "${DISABLE_IPTABLES:=true}"
 
 apt-repo add docker "https://download.docker.com/linux/ubuntu xenial stable" https://download.docker.com/linux/ubuntu/gpg || true
 apt-get update
@@ -26,8 +27,8 @@ DOCKER_HOME=/var/lib/docker
 # if DATA_DIR exists, move our storage there; it's probably got a lot more room
 if [[ -d "$DATA_DIR" ]]; then
     if [[ ! -L ${DOCKER_HOME} ]]; then
-        mv ${DOCKER_HOME} ${DATA_DIR}/
-        ln -s ${DATA_DIR}/$(basename ${DOCKER_HOME}) $(dirname ${DOCKER_HOME})
+        mv "${DOCKER_HOME}" "${DATA_DIR}/"
+        ln -s "${DATA_DIR}/$(basename "${DOCKER_HOME}")" "$(dirname "${DOCKER_HOME}")"
     fi
     # Soft-linking will break borgmatic excludes; rebuild them
     if [[ -x /etc/borgmatic/build-excludes ]]; then
@@ -93,24 +94,24 @@ EOF
 if ! grep -q POSTROUTING /etc/ufw/before.rules; then
   if [[ $DISABLE_IPTABLES == true ]]; then
     now=$(date +%s%N)
-    cat > /etc/ufw/before.rules.$now <<EOF
+    cat > "/etc/ufw/before.rules.$now" <<EOF
 # NAT table rules
 *nat
 :POSTROUTING ACCEPT [0:0]
 
 # Masquerade outgoing traffic coming from the docker subnet
 EOF
-    for interface in $PRIMARY_INTERFACE $ZEROTIER_INTERFACES; do
-        echo "-A POSTROUTING -o $interface -s 172.17.0.0/16 -j MASQUERADE" >> /etc/ufw/before.rules.$now
+    for interface in "$PRIMARY_INTERFACE" $ZEROTIER_INTERFACES; do
+        echo "-A POSTROUTING -o $interface -s 172.17.0.0/16 -j MASQUERADE" >> "/etc/ufw/before.rules.$now"
     done
-    cat >> /etc/ufw/before.rules.$now <<EOF
+    cat >> "/etc/ufw/before.rules.$now" <<EOF
 COMMIT
 
 EOF
 
-    cat /etc/ufw/before.rules >> /etc/ufw/before.rules.$now
+    cat /etc/ufw/before.rules >> "/etc/ufw/before.rules.$now"
     mv /etc/ufw/before.rules{,.bak}
-    mv /etc/ufw/before.rules{.$now,}
+    mv /etc/ufw/before.rules{."$now",}
 
     ufw disable && ufw --force enable
   fi
@@ -183,5 +184,4 @@ fi # unbound-control status
 service docker start
 
 # Enable daily docker image cleaner job
-ln -s ${SCRIPT_DIR}/clean-images /etc/cron.daily/
-
+ln -s "${SCRIPT_DIR}/clean-images" /etc/cron.daily/

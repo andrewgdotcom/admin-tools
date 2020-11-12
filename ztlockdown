@@ -14,7 +14,8 @@
 # secure and should have ssh access.
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-. ${SCRIPT_DIR}/poshlib/poshlib.sh || exit 1
+# shellcheck disable=SC1090
+. "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
 use swine
 
 UFW_RETRY_LIMIT=5
@@ -22,7 +23,7 @@ UFW_RETRY_LIMIT=5
 ### TODO: why does the first "ufw allow" on CentOS throw "ERROR: problem running"?
 centos_safe_ufw() {
     retry_count=0
-    while [[ $retry_count -lt $UFW_RETRY_LIMIT ]] && ! ufw $*; do
+    while [[ $retry_count -lt $UFW_RETRY_LIMIT ]] && ! ufw "$@"; do
         let ++retry_count
     done
     [[ $retry_count -lt $UFW_RETRY_LIMIT ]] || die 3 "ufw threw errors too many times in succession"
@@ -32,17 +33,15 @@ if [[ $(whoami) != "root" ]]; then
 	# If we are not root, become root. Non-root invocation is useful
 	# because most methods of obtaining root reset the environment.
 	# Duplicate any required envars on the other side of the sudo.
-	exec sudo SSH_CONNECTION="${SSH_CONNECTION}" $0
+	exec sudo SSH_CONNECTION="${SSH_CONNECTION}" "$0"
 fi
 
 APT=
 YUM=
 if [[ -d /etc/apt ]]; then
 	APT=true
-	SUDO=sudo
 elif [[ -d /etc/yum ]]; then
 	YUM=true
-	SUDO=wheel
 else
 	die 99 "Distribution not supported!"
 fi
@@ -91,7 +90,7 @@ ${WHITELIST}"
 
 for host in $WHITELIST; do
 	echo "Whitelisting ${host%%_*} (${host#*_})"
-	centos_safe_ufw allow to any app $SSH_PROFILE from "${host%%_*}" comment "${host#*_}"
+	centos_safe_ufw allow to any app "$SSH_PROFILE" from "${host%%_*}" comment "${host#*_}"
 done
 
 # Also whitelist incoming packets on the standard zerotier port.
@@ -135,7 +134,7 @@ for network in $NETWORKS; do
 	done
 
 	# add ssh access anyway
-	centos_safe_ufw allow from "$network_prefix" to any app $SSH_PROFILE comment "($network_name)"
+	centos_safe_ufw allow from "$network_prefix" to any app "$SSH_PROFILE" comment "($network_name)"
 	if [ -d /etc/sshguard ]; then
 		echo "$network_prefix" >> /etc/sshguard/whitelist
 	fi
@@ -143,7 +142,7 @@ for network in $NETWORKS; do
 done
 
 # And try to delete all instances of generic ssh access
-centos_safe_ufw delete allow $SSH_PROFILE
+centos_safe_ufw delete allow "$SSH_PROFILE"
 centos_safe_ufw delete allow 22
 centos_safe_ufw delete allow 22/tcp
 
