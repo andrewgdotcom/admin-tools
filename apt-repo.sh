@@ -1,4 +1,6 @@
-if ! which curl >&/dev/null; then
+# shellcheck disable=SC2148
+
+if ! command -v curl >/dev/null 2>&1; then
     echo "This utility requires curl"
     exit 1
 fi
@@ -9,7 +11,7 @@ apt-repo() { (
   CURL_FLAGS="-LSsf"
 
   SOURCES_DIR=/etc/apt/sources.list.d
-  BASENAME=$(basename $0)
+  BASENAME=$(basename "$0")
 
   usage() {
     cat <<EOF
@@ -60,7 +62,7 @@ EOF
 
     ARCH=$(dpkg --print-architecture)
     # normalise whitespace
-    REPO_CONFIG=$(echo -E $REPO_CONFIG)
+    REPO_CONFIG=$(sed 's/^\s*//; s/\s*$//; s/\s\s*/ /g' <<< "$REPO_CONFIG")
     # strip any leading "deb" from REPO_CONFIG; we put it back later.
     REPO_CONFIG="${REPO_CONFIG#deb }"
 
@@ -70,22 +72,22 @@ EOF
         die 3 "'$repo_url' is not a URL"
     fi
 
-    cat <<EOF >$SOURCES_FILE
+    cat <<EOF >"$SOURCES_FILE"
 # Created by $0 with: $BASENAME add $2 "$3" $4
 # To clean up use: $BASENAME remove $2
 deb [arch=$ARCH signed-by=$GPGKEY_FILE] $REPO_CONFIG
 EOF
 
     TMPFILE=$(mktemp)
-    curl $CURL_FLAGS -o $TMPFILE $GPGKEY_URL
-    gpg --no-default-keyring --keyring=$GPGKEY_FILE --import $TMPFILE
+    curl $CURL_FLAGS -o "$TMPFILE" "$GPGKEY_URL"
+    gpg --no-default-keyring --keyring="$GPGKEY_FILE" --import "$TMPFILE"
     # This might leave a backup file; clean it up
     rm "$GPGKEY_FILE~" || true
-    rm $TMPFILE
+    rm "$TMPFILE"
 
     # fix permissions
-    chown root:root $GPGKEY_FILE $SOURCES_FILE
-    chmod 644 $GPGKEY_FILE $SOURCES_FILE
+    chown root:root "$GPGKEY_FILE" "$SOURCES_FILE"
+    chmod 644 "$GPGKEY_FILE" "$SOURCES_FILE"
 
     ;;
 
@@ -101,7 +103,7 @@ EOF
       exit 2
     fi
 
-    rm $SOURCES_FILE $GPGKEY_FILE || true
+    rm "$SOURCES_FILE" "$GPGKEY_FILE" || true
 
     ;;
 

@@ -1,5 +1,4 @@
-#!/bin/bash
-
+# shellcheck disable=SC2148
 # Tool for extracting information from an elasticsearch-style yaml file.
 # Requires @kislyuk's yq (the one from python-pip, not the other one)
 
@@ -21,9 +20,9 @@ yaml-expand-forms() { (
     local head=${1%%.*}
     local tail=${1#*.}
     if [[ "$tail" != "$1" ]]; then
-        for tail_form in $(yaml-expand-forms $tail); do
-            echo $head'"."'$tail_form
-            echo $head.$tail_form
+        for tail_form in $(yaml-expand-forms "$tail"); do
+            echo "$head\".\"$tail_form"
+            echo "$head.$tail_form"
         done
     else
         echo "$head"
@@ -39,12 +38,12 @@ yaml-extract() { (
     local result=null
     for searchterm in $(yaml-expand-forms "$key"); do
         # remember to add the double quotes, see expand_forms above
-        result=$($_KISLYUK_YQ '."'$searchterm'"' "$file")
+        result=$($_KISLYUK_YQ ".\"$searchterm\"" "$file")
         if [[ "$result" != null ]]; then
             # Strip quotes from the value
             result="${result#\"}"
             result="${result%\"}"
-            echo $result
+            echo "$result"
             return
         fi
     done
@@ -62,17 +61,17 @@ yaml-replace() { (
     local modified=
     for searchterm in $(yaml-expand-forms "$key"); do
         # remember to add the double quotes, see expand_forms above
-        result=$($_KISLYUK_YQ '."'$searchterm'"' "$file")
+        result=$($_KISLYUK_YQ ".\"$searchterm\"" "$file")
         if [[ "$result" != null ]]; then
             cp "$file" "${file}.bak"
-            $_KISLYUK_YQ -y '."'$searchterm'" |= "'"$value"'"' "${file}.bak" > "$file"
+            $_KISLYUK_YQ -y ".\"$searchterm\" |= \"$value\"" "${file}.bak" > "$file"
             modified=true
             break
         fi
     done
     if [[ ! $modified && "${3:-}" == "or-add" ]]; then
         cp "$file" "${file}.bak"
-        $_KISLYUK_YQ -y '."'$key'" |= "'"$value"'"' "${file}.bak" > "$file"
+        $_KISLYUK_YQ -y ".\"$key\" |= \"$value\"" "${file}.bak" > "$file"
     fi
 ) }
 
@@ -85,10 +84,10 @@ yaml-delete() { (
     local result=null
     for searchterm in $(yaml-expand-forms "$key"); do
         # remember to add the double quotes, see expand_forms above
-        result=$($_KISLYUK_YQ '."'$searchterm'"' "$file")
+        result=$($_KISLYUK_YQ ".\"$searchterm\"" "$file")
         if [[ "$result" != null ]]; then
             cp "$file" "${file}.bak"
-            $_KISLYUK_YQ -y 'del(."'$searchterm'")' "${file}.bak" > "$file"
+            $_KISLYUK_YQ -y "del(.\"$searchterm\")" "${file}.bak" > "$file"
             return
         fi
     done

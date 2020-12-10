@@ -3,11 +3,12 @@
 # It *should* be idempotent...
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-. ${SCRIPT_DIR}/poshlib/poshlib.sh || exit 1
+# shellcheck disable=SC1090
+. "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
 use swine
 
-APT=
-YUM=
+APT=''
+YUM=''
 if [[ -d /etc/apt ]]; then
 	APT=true
 	SUDO=sudo
@@ -35,10 +36,12 @@ PRESEED_USER_ID="Andrew Gallagher <andrewg@andrewg.com>"
 PRESEED_USER_ACCOUNT="andrewg"
 
 if [[ -f /etc/monkeyproof ]]; then
-	. /etc/monkeyproof
+    # shellcheck disable=SC1091
+    . /etc/monkeyproof
 fi
 if [[ -f ~/.monkeyproof ]]; then
-	. ~/.monkeyproof
+    # shellcheck disable=SC1090
+    . ~/.monkeyproof
 fi
 
 # Install and configure monkeysphere
@@ -49,7 +52,7 @@ if [[ $APT ]]; then
   fi
   apt-get -y install monkeysphere dirmngr
 elif [[ $YUM ]]; then
-  if rpm -q gnupg2 | egrep -q "gnupg2-2\.2\."; then
+  if rpm -q gnupg2 | grep -q 'gnupg2-2\.2\.'; then
     yum -y --setopt=skip_missing_names_on_install=False install monkeysphere
   else
     # Hacky, hacky method to get monkeysphere to work on a CentOS/RHEL 7
@@ -60,24 +63,24 @@ elif [[ $YUM ]]; then
     yum copr enable -y icon/lfit
     yum install -y gnupg22-static patch
     yum -y --setopt=skip_missing_names_on_install=False install monkeysphere
-    if ! egrep -q /opt/gnupg22/bin /usr/share/monkeysphere/defaultenv; then
+    if ! grep -q /opt/gnupg22/bin /usr/share/monkeysphere/defaultenv; then
         cat <<'EOF' >> /usr/share/monkeysphere/defaultenv
 
 # Added by monkeyproof script
-export PATH=/opt/gnupg22/bin:$PATH
+export PATH=/opt/gnupg22/bin:"$PATH"
 EOF
     fi
     # run monkeysphere-authentication once to create default directories
-    monkeysphere-authentication list-id-certifiers 2>&1 >/dev/null || true
-    cat <<EOF > $MS_SPHERE_DIR/gpg.conf-2.2
+    monkeysphere-authentication list-id-certifiers >/dev/null 2>&1 || true
+    cat <<EOF > "$MS_SPHERE_DIR/gpg.conf-2.2"
 no-greeting
 list-options show-uid-validity
 keyid-format 0xlong
 agent-program   /opt/gnupg22/bin/gpg-agent
 dirmngr-program /opt/gnupg22/bin/dirmngr
 EOF
-    chown monkeysphere:monkeysphere $MS_SPHERE_DIR/gpg.conf-2.2
-    cat <<EOF > $MS_CORE_DIR/gpg.conf-2.2
+    chown monkeysphere:monkeysphere "$MS_SPHERE_DIR/gpg.conf-2.2"
+    cat <<EOF > "$MS_CORE_DIR/gpg.conf-2.2"
 no-greeting
 keyid-format 0xlong
 agent-program   /opt/gnupg22/bin/gpg-agent
@@ -86,7 +89,7 @@ EOF
     # And now perform a filthy, unforgivable patch against monkeysphere.
     # THIS WILL BREAK ON UPGRADES
     # ... but then this is CentOS 7 so it won't be getting any.
-    patch -f -b -d/ -R -p1 <<'EOF' || die 1 "\n\nPATCH FAILED, CHECK MANUALLY\n\n"
+    patch -f -b -d/ -R -p1 <<'EOF' || die 1 $'\n\nPATCH FAILED, CHECK MANUALLY\n\n'
 *** /usr/share/monkeysphere/ma/add_certifier 2020-03-20 16:40:50.976038098 +0000
 --- /usr/share/monkeysphere/ma/add_certifier.bak 2016-06-27 02:32:33.000000000 +0000
 *************** else
@@ -181,26 +184,26 @@ cat > /etc/security/authorized_keys/README <<EOF
 EOF
 
 for id in $ID_CERTIFIERS; do
-	monkeysphere-authentication add-id-certifier $id
+	monkeysphere-authentication add-id-certifier "$id"
 done
 
 # Add preseed user
 if [ ! -d /etc/monkeysphere/authorized_user_ids ]; then
 	mkdir /etc/monkeysphere/authorized_user_ids
 fi
-echo "$PRESEED_USER_ID" > /etc/monkeysphere/authorized_user_ids/$PRESEED_USER_ACCOUNT
+echo "$PRESEED_USER_ID" > "/etc/monkeysphere/authorized_user_ids/$PRESEED_USER_ACCOUNT"
 # Create the account if it doesn't exist
 if ! grep -q "^$PRESEED_USER_ACCOUNT:" /etc/passwd ; then
 	if [[ $APT ]]; then
 		# We can and must do this on one line, else we get prompted
-		adduser --disabled-password --gecos "${PRESEED_USER_ID%%<*}" $PRESEED_USER_ACCOUNT
+		adduser --disabled-password --gecos "${PRESEED_USER_ID%%<*}" "$PRESEED_USER_ACCOUNT"
 	elif [[ $YUM ]]; then
 		# We can't do it on one line, but adduser doesn't complain
-		adduser $PRESEED_USER_ACCOUNT
-		usermod --lock $PRESEED_USER_ACCOUNT
-		usermod --comment "${PRESEED_USER_ID%%<*}" $PRESEED_USER_ACCOUNT
+		adduser "$PRESEED_USER_ACCOUNT"
+		usermod --lock "$PRESEED_USER_ACCOUNT"
+		usermod --comment "${PRESEED_USER_ID%%<*}" "$PRESEED_USER_ACCOUNT"
 	fi
-	usermod -aG ${SUDO} $PRESEED_USER_ACCOUNT
+	usermod -aG "${SUDO}" "$PRESEED_USER_ACCOUNT"
 fi
 monkeysphere-authentication update-users
 
@@ -219,14 +222,14 @@ chmod +x /etc/cron.hourly/monkeysphere
 
 # Now configure sshd to read the monkeysphere keys
 
-if egrep -q '^\s*AuthorizedKeysFile\s+%h/.ssh/authorized_keys\s+/var/lib/monkeysphere/authorized_keys/%u\s*$' /etc/ssh/sshd_config; then
+if grep -Eq '^\s*AuthorizedKeysFile\s+%h/.ssh/authorized_keys\s+/var/lib/monkeysphere/authorized_keys/%u\s*$' /etc/ssh/sshd_config; then
 	# If we find our own handiwork, do nothing; this is for idempotency
 	echo "SSHD already configured for monkeysphere"
-elif egrep -q '^\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
+elif grep -Eq '^\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
 	# If there exists a working AuthorizedKeysFile line, comment it out and insert above it
 	perl -pi.bak -e 'if(!$done && s!^(\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n#$1!) {$done=1;}' /etc/ssh/sshd_config
 	ssh_restart=true
-elif egrep -q '^\s*#+\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
+elif grep -Eq '^\s*#+\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
 	# If there exists only a commented out AuthorizedKeysFile, insert above it
 	perl -pi.bak -e 'if(!$done && s!^(\s*#+\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n$1!) {$done=1;}' /etc/ssh/sshd_config
 	ssh_restart=true
@@ -242,13 +245,13 @@ EOF
 fi
 
 # Also fix StreamLocalBindUnlink while we're here
-if egrep -q '^\s*StreamLocalBindUnlink\s+yes' /etc/ssh/sshd_config; then
+if grep -Eq '^\s*StreamLocalBindUnlink\s+yes' /etc/ssh/sshd_config; then
     echo "StreamLocalBindUnlink already enabled"
-elif egrep -q '^\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
+elif grep -Eq '^\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
     # Replace the uncommented StreamLocalBindUnlink line with ours
     perl -pi.bak -e 'if(!$done && s/^(\s*StreamLocalBindUnlink\s.*)$/StreamLocalBindUnlink yes/) {$done=1;}' /etc/ssh/sshd_config
     ssh_restart=true
-elif egrep -q '^\s*#+\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
+elif grep -Eq '^\s*#+\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
     # Replace the first commented StreamLocalBindUnlink line with ours
     perl -pi.bak -e 'if(!$done && s/^(\s*#+\s*StreamLocalBindUnlink\s.*)$/StreamLocalBindUnlink yes/) {$done=1;}' /etc/ssh/sshd_config
     ssh_restart=true
@@ -263,14 +266,14 @@ EOF
 fi
 
 if [[ $ssh_restart ]]; then
-    service $SSH restart
+    service "$SSH" restart
 fi
 
 # Populate monkeysphere-host database with SSH's RSA key
 serverlist="$(hostname --fqdn -A | sed 's/ /\n/g' | sort -u)"
 if [[ $serverlist ]]; then
   for server in $serverlist; do
-    monkeysphere-host import-key /etc/ssh/ssh_host_rsa_key ssh://${server} || true
+    monkeysphere-host import-key /etc/ssh/ssh_host_rsa_key "ssh://${server}" || true
   done
 else
   echo "WARNING: no valid FQDNs found. Not populating monkeysphere-host DB"

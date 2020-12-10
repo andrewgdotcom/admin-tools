@@ -4,17 +4,16 @@
 # We also optionally update the local /etc/hosts file
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
-. $SCRIPT_DIR/poshlib/poshlib.sh || exit 1
+# shellcheck disable=SC1090
+. "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
 use-from .
 use swine
 use apt-repo
 
 if [[ -d /etc/apt ]]; then
 	APT=true
-	SUDO=sudo
 elif [[ -d /etc/yum ]]; then
 	YUM=true
-	SUDO=wheel
 else
 	echo "Distribution not supported!"
 	exit -1
@@ -27,10 +26,12 @@ NETWORKS="8056c2e21c000001:world"
 #NETWORKS=$'8056c2e21c000001 world\n0000000000000000 nowhere'
 
 if [[ -f /etc/ztsetup ]]; then
-	. /etc/ztsetup
+    # shellcheck disable=SC1091
+    . /etc/ztsetup
 fi
 if [[ -f ~/.ztsetup ]]; then
-	. ~/.ztsetup
+    # shellcheck disable=SC1090
+    . ~/.ztsetup
 fi
 
 if [[ ${1:-} ]]; then
@@ -43,7 +44,7 @@ if [[ ${APT:-} ]]; then
 
   # Attempt to autodetect our distribution. This should work for debian and ubuntu
   # IFF the main distribution is configured sensibly
-  : ${DIST:=$(awk '/^deb.*main/ {print $3}' /etc/apt/sources.list | grep -v '-' | head -1)}
+  : "${DIST:=$(awk '/^deb.*main/ {print $3}' /etc/apt/sources.list | grep -v '-' | head -1)}"
 
   if zerotier-cli info 2>/dev/null; then
 	echo "Already installed"
@@ -88,7 +89,7 @@ done
 # auto join the standard networks
 for network in $NETWORKS; do
 	network_id=${network%%:*}
-	zerotier-cli join $network_id
+	zerotier-cli join "$network_id"
 done
 
 # and add some useful name resolutions
