@@ -129,9 +129,9 @@ if [[ $REMOTE_HOST ]]; then
         echo "$REMOTE_HOST_KEY" >> /root/.ssh/known_hosts
     fi
 
-    # Make sure the remote host is usable
-    if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" "echo -n"; then
-        die 99 "Can't run commands on remote host, aborting"
+    # Make sure the remote host is usable and the parent directory exists
+    if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" "mkdir -p ${REPO_LOCATION}"; then
+        die 99 "Can't run necessary commands on remote host, aborting"
     fi
 
     # Sanity check for pre-existing repo
@@ -146,6 +146,9 @@ else
     if test -d "${BORG_REPO}"; then
         echo "Repo already exists"
         RECOVERY=true
+    else
+        # Make sure parent directory exists
+        mkdir -p "${REPO_LOCATION}"
     fi
 
 fi
