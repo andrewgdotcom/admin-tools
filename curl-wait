@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# A script to wait for a list of URLs to come up
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+# shellcheck disable=SC1090
+. "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
+use swine
+
+CURL_FLAGS=-SsfLk
+
+[[ "${1:-}" ]] || die 1 "Usage: $0 <host>[:<port>][,<host>[:<port]][,...] [<retries> [<retry_wait>]]"
+HOSTS=$(tr , " " <<< "$1")
+
+retries=${2:-30}
+retry_wait=${3:-10}
+
+for host in $HOSTS; do
+  port=${host#*:}
+  host=${host%%:*}
+  [[ "$port" && "$port" != "$host" ]] || port=80
+
+  while
+    err=0
+    curl $CURL_FLAGS "http://$host:$port" > /dev/null 2>&1 || err=$?
+    # error 22 (unauthorised) counts as success in this context
+    [[ $err != 0 && $err != 22 ]]
+  do
+    retries=$((retries-1))
+    if [[ $retries -eq 0 ]]; then
+        die 2 "Too many retries; aborting"
+    fi
+    echo -n "."
+    sleep "$retry_wait"
+  done
+done
+echo
+exit 0
