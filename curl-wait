@@ -6,23 +6,20 @@ SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 # shellcheck disable=SC1090
 . "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
 use swine
+use parse-opt
 
 CURL_FLAGS=-SsfLk
 
-[[ "${1:-}" ]] || die 1 "Usage: $0 <host>[:<port>][,<host>[:<port]][,...] [<retries> [<retry_wait>]]"
-HOSTS=$(tr , " " <<< "$1")
+[[ "${1:-}" ]] || die 1 "Usage: $0 <url>[,...] [<retries> [<retry_wait>]]"
+URLS=$(tr , " " <<< "$1")
 
 retries=${2:-30}
 retry_wait=${3:-10}
 
-for host in $HOSTS; do
-  port=${host#*:}
-  host=${host%%:*}
-  [[ "$port" && "$port" != "$host" ]] || port=80
-
+for url in $URLS; do
   while
     err=0
-    curl $CURL_FLAGS "http://$host:$port" > /dev/null 2>&1 || err=$?
+    curl $CURL_FLAGS "$url" > /dev/null 2>&1 || err=$?
     # error 22 (unauthorised) counts as success in this context
     [[ $err != 0 && $err != 22 ]]
   do
