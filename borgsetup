@@ -32,6 +32,9 @@ REMOTE_DIRECTORY=borg
 # ansible to hang.
 #REMOTE_HOST_KEY="host.example.net,10.0.0.1 ssh-ed25519 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
+# List of directories to back up
+BACKUP_SOURCES=( /home /etc /var /srv /usr/local /data /opt )
+
 # If we are using a local directory, configure it here.
 #LOCAL_DIRECTORY=/var/backups/borg/
 
@@ -267,14 +270,16 @@ cat > /etc/borgmatic/config.yaml <<EOF
 location:
     # List of source directories to backup (required). Globs and tildes are expanded.
     source_directories:
-        - /home
-        - /etc
-        - /var
-        - /srv
-        - /usr/local
-        - /data
-        - /opt
+EOF
 
+# Only try to backup directories if they exist
+for dir in "${BACKUP_SOURCES[@]}"; do
+    if [[ -d $dir ]]; then
+        echo "        - $dir" >> /etc/borgmatic/config.yaml
+    fi
+done
+
+cat >> /etc/borgmatic/config.yaml <<EOF
     # Stay in same file system (do not cross mount points).
     one_file_system: true
 
