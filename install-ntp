@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# QAD script to install and configure ntp
+
+timedatectl set-timezone Etc/UTC
+
+if [[ -d /etc/apt ]]; then
+    if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
+        apt-get update
+    fi
+    apt install -y ntp
+elif [[ -d /etc/yum ]]; then
+    yum -y --setopt=skip_missing_names_on_install=False install ntp
+else
+    echo "Distribution not supported!"
+    exit -1
+fi

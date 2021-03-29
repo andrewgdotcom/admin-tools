@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# QAD script to override Linode's /etc/resolv.conf on starting unbound
+
+SYSTEMD_UNIT=/etc/systemd/system/multi-user.target.wants/unbound
+INITD_UNIT=/etc/init.d/unbound
+
+if [[ -f ${SYSTEMD_UNIT} ]]; then
+
+  perl -pi -e 's,^(\s*)(ExecStart=),$1ExecStartPre=-/usr/local/bin/make-resolvconf-link.sh\n$1$2,' \
+    ${SYSTEMD_UNIT}
+
+else
+
+  perl -pi -e 's,^(\s*)(start\)),$1$2\n$1$1/usr/local/bin/make-resolvconf-link.sh,' \
+    ${INITD_UNIT}
+
+fi
+
+cat <<EOF >/usr/local/bin/make-resolvconf-link.sh
+#!/bin/bash
+
+# Force /etc/resolv.conf to be a soft link to the resolvconf managed resolv.conf file
+
+RESOLVCONF_FILE=\$(find -L /etc/resolvconf /var/run -name resolv.conf)
+
+if [[ -f \${RESOLVCONF_FILE} ]]; then
+	ln -sf \${RESOLVCONF_FILE} /etc/resolv.conf
+fi
+EOF
+
+chmod +x /usr/local/bin/make-resolvconf-link.sh
+
+if [[ -f ${SYSTEMD_UNIT} ]]; then
+  systemctl daemon-reload
+fi
+
+service unbound restart
