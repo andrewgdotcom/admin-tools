@@ -172,16 +172,17 @@ cat > /etc/monkeysphere/monkeysphere-host.conf <<EOF
 KEYSERVER=keys.openpgp.org
 EOF
 
-if [ ! -d /etc/security/authorized_keys ]; then
-	mkdir /etc/security/authorized_keys
-fi
-cat > /etc/security/authorized_keys/README <<EOF
+# Allow for possibility of soft-linked or prepopulated authorized_keys
+if [ ! -e /etc/security/authorized_keys ]; then
+	mkdir -p /etc/security/authorized_keys
+  cat > /etc/security/authorized_keys/README <<EOF
 # This directory contains authorized keys for use by both ssh and sudo.
 # These are NOT used directly, but are polled regularly by monkeysphere.
 # To force an update ahead of schedule, run the following command as root:
 #
 #	monkeysphere-authentication update-users
 EOF
+fi
 
 for id in $ID_CERTIFIERS; do
 	monkeysphere-authentication add-id-certifier "$id"
