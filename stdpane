@@ -1,0 +1,29 @@
+#! /bin/bash -
+
+# Tool to invoke `screen` to display STDOUT/STDERR in separate panes
+# Shamelessly stolen from https://unix.stackexchange.com/a/299659/112459
+#
+# Modified by ABG to print stderr in the main pane and stdout in secondary
+# as this behaves better with `read -p` etc.
+
+tmpdir=$(mktemp -d) || exit
+trap 'rm -rf "$tmpdir"' EXIT INT TERM HUP
+
+FIFO=$tmpdir/FIFO
+mkfifo "$FIFO" || exit
+
+conf=$tmpdir/conf
+
+cat > "$conf" << 'EOF' || exit
+split -v
+focus
+screen -t stdout sh -c 'tty > "$FIFO"; read done < "$FIFO"'
+focus
+screen -t stderr sh -c 'read tty < "$FIFO"; eval "$CMD" > "$tty"; echo "[Command exited with status $?, press enter to exit]"; read prompt; echo done > "$FIFO"'
+EOF
+
+CMD="$*"
+: "${CMD:=/bin/bash}"
+
+export FIFO CMD
+screen -mc "$conf"
