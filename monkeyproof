@@ -89,7 +89,9 @@ EOF
     # And now perform a filthy, unforgivable patch against monkeysphere.
     # THIS WILL BREAK ON UPGRADES
     # ... but then this is CentOS 7 so it won't be getting any.
-    patch -f -b -d/ -R -p1 <<'EOF' || die 1 $'\n\nPATCH FAILED, CHECK MANUALLY\n\n'
+    # For idempotency, check to ensure we don't try to double-patch.
+    grep -q 'cut -d: -f10 . head -1' /usr/share/monkeysphere/ma/add_certifier || \
+      patch -f -b -d/ -R -p1 <<'EOF' || die 1 $'\n\nPATCH FAILED, CHECK MANUALLY\n\n'
 *** /usr/share/monkeysphere/ma/add_certifier 2020-03-20 16:40:50.976038098 +0000
 --- /usr/share/monkeysphere/ma/add_certifier.bak 2016-06-27 02:32:33.000000000 +0000
 *************** else
