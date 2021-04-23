@@ -175,7 +175,7 @@ KEYSERVER=keys.openpgp.org
 EOF
 
 # Allow for possibility of soft-linked or prepopulated authorized_keys
-if [ ! -e /etc/security/authorized_keys ]; then
+if [[ ! -L /etc/security/authorized_keys && ! -e /etc/security/authorized_keys ]]; then
 	mkdir -p /etc/security/authorized_keys
   cat > /etc/security/authorized_keys/README <<EOF
 # This directory contains authorized keys for use by both ssh and sudo.
