@@ -191,7 +191,7 @@ for id in $ID_CERTIFIERS; do
 done
 
 # Add preseed user
-if [ ! -d /etc/monkeysphere/authorized_user_ids ]; then
+if [[ ! -L /etc/monkeysphere/authorized_user_ids && ! -e /etc/monkeysphere/authorized_user_ids ]]; then
 	mkdir /etc/monkeysphere/authorized_user_ids
 fi
 echo "$PRESEED_USER_ID" > "/etc/monkeysphere/authorized_user_ids/$PRESEED_USER_ACCOUNT"
