@@ -133,14 +133,19 @@ if [[ $REMOTE_HOST ]]; then
     fi
 
     # Make sure the remote host is usable and the parent directory exists
-    if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" "mkdir -p ${REPO_LOCATION}"; then
+    if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" -- "mkdir -p ${REPO_LOCATION}"; then
         die 99 "Can't run necessary commands on remote host, aborting"
     fi
 
     # Sanity check for pre-existing repo
-    if ssh "${REMOTE_USER}@${REMOTE_HOST}" test -d "${REMOTE_DIRECTORY}/${HOSTNAME}"; then
+    if ssh "${REMOTE_USER}@${REMOTE_HOST}" -- test -d "${REMOTE_DIRECTORY}/${HOSTNAME:-NULL}"; then
         echo "Repo already exists"
-        RECOVERY=true
+        if [[ "$SHOVE_BORG_REPO" ]]; then
+            echo "Moving old repo aside"
+            ssh "$REMOTE_USER@$REMOTE_HOST" -- mv "${REMOTE_DIRECTORY}/${HOSTNAME:-NULL}"{,."$(date +%s)"}
+        else
+            RECOVERY=true
+        fi
     fi
 
 else
@@ -148,7 +153,12 @@ else
     # Sanity check for pre-existing repo
     if test -d "${BORG_REPO}"; then
         echo "Repo already exists"
-        RECOVERY=true
+        if [[ "$SHOVE_BORG_REPO" ]]; then
+            echo "Moving old repo aside"
+            mv "${BORG_REPO}"{,."$(date +%s)"}
+        else
+            RECOVERY=true
+        fi
     else
         # Make sure parent directory exists
         mkdir -p "${REPO_LOCATION}"
