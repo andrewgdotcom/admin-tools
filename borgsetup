@@ -1,10 +1,9 @@
 #!/bin/bash
 
-set -eo pipefail
-err_report() {
-    echo "errexit on line $(caller)" >&2
-}
-trap err_report ERR
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+. "${SCRIPT_DIR}/poshlib/poshlib.sh" || exit 1
+use swine
+use parse-opt
 
 YQ=/usr/local/bin/yq
 
@@ -13,7 +12,7 @@ YQ=/usr/local/bin/yq
 PASSPHRASE_LENGTH=24
 
 # Uncomment to perform an initial backup straight away
-#IMMEDIATE_BACKUP=1
+#IMMEDIATE_BACKUP=true
 
 # Where to keep our borgmatic-specific ssh key
 SSH_KEYFILE=/root/.ssh/id_rsa_borgmatic
@@ -38,13 +37,6 @@ BACKUP_SOURCES=( /home /etc /var /srv /usr/local /data /opt )
 # If we are using a local directory, configure it here.
 #LOCAL_DIRECTORY=/var/backups/borg/
 
-SCRIPT_DIR=$(dirname $(readlink -f $0))
-
-die() {
-    echo $2 >&2
-    exit $1
-}
-
 if [[ -d /etc/apt ]]; then
     APT=true
     SUDO=sudo
@@ -68,11 +60,16 @@ if [[ -f ~/.borgsetup ]]; then
 	. ~/.borgsetup
 fi
 
+# parse command line options
+PO_SIMPLE_FLAGS="SHOVE_BORG_REPO IMMEDIATE_BACKUP"
+PO_SIMPLE_PARAMS="REMOTE_USER REMOTE_HOST REMOTE_DIRECTORY REMOTE_HOST_KEY LOCAL_DIRECTORY SSH_KEYFILE PASSPHRASE_LENGTH"
+eval $(parse-opt-simple)
+
 ##########################
 #### Let's go to work ####
 ##########################
 
-if [[ ! $(sudo bash -c 'echo $SSH_AUTH_SOCK') ]]; then
+if [[ ! "$(sudo bash -c 'echo $SSH_AUTH_SOCK')" ]]; then
 	echo "sudo is not passing through \$SSH_AUTH_SOCK. This script will not work until you fix it."
 	echo "Try setting \'Defaults env_keep += \"SSH_AUTH_SOCK\"\' under /etc/sudoers.d"
 	echo "Or did you forget to run monkeyproof?"
@@ -86,13 +83,14 @@ case "$HOSTNAME" in
 	;;
 esac
 
-if [[ "$REMOTE_HOST" ]]; then
-	REPO_LOCATION="${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIRECTORY}"
-elif [[ "$LOCAL_DIRECTORY" ]]; then
+# If LOCAL_DIRECTORY is defined, it overrides remote configuration
+if [[ "${LOCAL_DIRECTORY:-}" ]]; then
 	if [[ "$LOCAL_DIRECTORY" = "/" ]]; then
 		die 1 "Don't use / as your backup location! Aborting."
 	fi
 	REPO_LOCATION="$LOCAL_DIRECTORY"
+elif [[ "${REMOTE_HOST:-}" ]]; then
+	REPO_LOCATION="${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIRECTORY}"
 else
 	die 1 "Need to configure either a remote or local repo"
 fi
@@ -124,23 +122,23 @@ esac
 
 export BORG_REPO="${REPO_LOCATION}${HOSTNAME}"
 
-if [[ $REMOTE_HOST ]]; then
+if [[ "${REMOTE_HOST:-}" ]]; then
 
-    if [[ $REMOTE_HOST_KEY ]]; then
+    if [[ "${REMOTE_HOST_KEY:-}" ]]; then
         # Preseed our (and root's!) known_hosts with the remote host key
         echo "$REMOTE_HOST_KEY" >> ~/.ssh/known_hosts
         echo "$REMOTE_HOST_KEY" >> /root/.ssh/known_hosts
     fi
 
     # Make sure the remote host is usable and the parent directory exists
-    if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" -- "mkdir -p ${REPO_LOCATION}"; then
+    if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" -- mkdir -p "${REPO_LOCATION}"; then
         die 99 "Can't run necessary commands on remote host, aborting"
     fi
 
     # Sanity check for pre-existing repo
     if ssh "${REMOTE_USER}@${REMOTE_HOST}" -- test -d "${REMOTE_DIRECTORY}/${HOSTNAME:-NULL}"; then
         echo "Repo already exists"
-        if [[ "$SHOVE_BORG_REPO" ]]; then
+        if [[ "${SHOVE_BORG_REPO:-}" == "true" ]]; then
             echo "Moving old repo aside"
             ssh "$REMOTE_USER@$REMOTE_HOST" -- mv "${REMOTE_DIRECTORY}/${HOSTNAME:-NULL}"{,."$(date +%s)"}
         else
@@ -153,7 +151,7 @@ else
     # Sanity check for pre-existing repo
     if test -d "${BORG_REPO}"; then
         echo "Repo already exists"
-        if [[ "$SHOVE_BORG_REPO" ]]; then
+        if [[ "${SHOVE_BORG_REPO:-}" == "true" ]]; then
             echo "Moving old repo aside"
             mv "${BORG_REPO}"{,."$(date +%s)"}
         else
@@ -166,29 +164,29 @@ else
 
 fi
 
-if [[ $RECOVERY ]]; then
+if [[ "${RECOVERY:-}" == "true" ]]; then
     echo "Entering recovery mode..."
     # In recovery mode, we must have a pre-existing configuration
-    if [[ ! $BORG_PASSPHRASE ]]; then
+    if [[ ! "${BORG_PASSPHRASE:-}" ]]; then
         export BORG_PASSPHRASE=$($YQ -r .storage.encryption_passphrase </etc/borgmatic/config.yaml)
-        [[ $BORG_PASSPHRASE ]] || die 5 "Recovery mode requires BORG_PASSPHRASE to be set; aborting"
+        [[ "${BORG_PASSPHRASE:-}" ]] || die 5 "Recovery mode requires BORG_PASSPHRASE to be set; aborting"
     fi
     BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
-    if [[ ! $BORG_KEYFILE ]]; then
+    if [[ ! "${BORG_KEYFILE:-}" ]]; then
         die 5 "Recovery mode requires a borg keyfile under /root/.config/borg/keys; aborting"
     fi
 else
-    export BORG_PASSPHRASE=$(< /dev/urandom tr -dc A-Za-z0-9 | head -c$PASSPHRASE_LENGTH)
+    export BORG_PASSPHRASE=$(< /dev/urandom tr -dc A-Za-z0-9 | head "-c$PASSPHRASE_LENGTH")
 fi
 
-if [[ $APT ]]; then
+if [[ "${APT:-}" == "true" ]]; then
   if [[ ! -x /usr/bin/borg || ! -x /usr/bin/pip3 ]]; then
 	if [[ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]]; then
 		apt-get update
 	fi
 	apt-get -y install borgbackup python3-pip
   fi
-elif [[ $YUM ]]; then
+elif [[ "${YUM:-}" == "true" ]]; then
 	yum -y --setopt=skip_missing_names_on_install=False install borgbackup python34-pip
 fi
 
@@ -200,11 +198,11 @@ fi
 PATH_SAVE=$PATH
 PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH
 WHICH=$(which borgmatic 2>/dev/null || true)
-if [[ ! -x "$BORGMATIC" && -z "$WHICH" ]]; then
+if [[ ! -x "$BORGMATIC" && -z "${WHICH:-}" ]]; then
     pip3 install borgmatic
     WHICH=$(which borgmatic 2>/dev/null || true)
     if [[ ! -x "$BORGMATIC" ]]; then
-        if [[ -n "$WHICH" ]]; then
+        if [[ -n "${WHICH:-}" ]]; then
             BORGMATIC="$WHICH"
         else
             die 9 "Cannot find borgmatic anywhere; aborting."
@@ -221,9 +219,9 @@ fi
 let "RANDHOUR = $RANDOM % 5 + 1"
 let "RANDMIN = $RANDOM % 60"
 
-if [[ -f /usr/local/bin/borg-silencer.pl || -f $SCRIPT_DIR/borg-silencer.pl ]]; then
+if [[ -f /usr/local/bin/borg-silencer.pl || -f "$SCRIPT_DIR/borg-silencer.pl" ]]; then
     if [[ ! -f /usr/local/bin/borg-silencer.pl ]]; then
-        cp $SCRIPT_DIR/borg-silencer.pl /usr/local/bin/
+        cp "$SCRIPT_DIR/borg-silencer.pl" /usr/local/bin/
         chmod +x /usr/local/bin/borg-silencer.pl
     fi
     # We need to escape $PATH so that it is evaluated by cron, not here
@@ -241,7 +239,7 @@ $RANDMIN $RANDHOUR * * * root /bin/bash -c "PATH=\$PATH:/usr/local/bin $BORGMATI
 EOF
 fi
 
-service $CRON reload
+service "$CRON" reload
 
 if [[ -x /usr/bin/pg_dumpall && -d /run/postgresql ]]; then
 	touch /var/backups/postgres && chown postgres /var/backups/postgres
@@ -284,7 +282,7 @@ EOF
 
 # Only try to backup directories if they exist
 for dir in "${BACKUP_SOURCES[@]}"; do
-    if [[ -d $dir ]]; then
+    if [[ -d "$dir" ]]; then
         echo "        - $dir" >> /etc/borgmatic/config.yaml
     fi
 done
@@ -350,7 +348,7 @@ consistency:
 EOF
 
 # If using local repos make some sanity checks
-if [[ -z "$REMOTE_HOST" ]]; then
+if [[ -z "${REMOTE_HOST:-}" ]]; then
 	# Make sure the location exists
 	if [[ ! -d "$REPO_LOCATION" ]]; then
 		mkdir -p "$REPO_LOCATION"
@@ -366,10 +364,10 @@ chmod -R o= /etc/borgmatic
 
 ### Fire in the hole. ###
 
-if [[ "$REMOTE_HOST" ]]; then
+if [[ "${REMOTE_HOST:-}" ]]; then
 	# Make ourselves a dedicated ssh key with no passphrase
 	if [[ ! -f "$SSH_KEYFILE" ]]; then
-		ssh-keygen -N "" -f "$SSH_KEYFILE" -C "borgmatic root@${HOSTNAME}" || die 2 "Could not generate SSH key"
+		ssh-keygen -N "" -f "$SSH_KEYFILE" -C "borgmatic root@${HOSTNAME}"
 	fi
 
 	# Copy our ssh public key to the remote server. We need to be logged in to
@@ -378,16 +376,16 @@ if [[ "$REMOTE_HOST" ]]; then
 	#
 	if ssh "${REMOTE_USER}@${REMOTE_HOST}" "/bin/sh -c exit"; then
 		# Remote server appears to be fully capable
-		ssh-copy-id -i "$SSH_KEYFILE" "${REMOTE_USER}@${REMOTE_HOST}" || die $? "Could not copy SSH key to remote server"
+		ssh-copy-id -i "$SSH_KEYFILE" "${REMOTE_USER}@${REMOTE_HOST}"
 	else
 		# This is probably due to a restricted shell - try a stupider method
 		# NB this is racy AF. Make sure you have a way to get back in (e.g. password)
 		# TODO: try using sshfs?
 		TEMPFILE=$(mktemp)
-		scp "${REMOTE_USER}@${REMOTE_HOST}:.ssh/authorized_keys" $TEMPFILE || exit 91
-		cat "${SSH_KEYFILE}.pub" >> $TEMPFILE
-		scp $TEMPFILE "${REMOTE_USER}@${REMOTE_HOST}:.ssh/authorized_keys" || exit 92
-		rm $TEMPFILE
+		scp "${REMOTE_USER}@${REMOTE_HOST}:.ssh/authorized_keys" "$TEMPFILE"
+		cat "${SSH_KEYFILE}.pub" >> "$TEMPFILE"
+		scp "$TEMPFILE" "${REMOTE_USER}@${REMOTE_HOST}:.ssh/authorized_keys"
+		rm "$TEMPFILE"
 	fi
 
 	# Now make sure root uses the dedicated key for this connection
@@ -401,7 +399,7 @@ EOF
 	fi
 fi
 
-if [[ $RECOVERY ]]; then
+if [[ "${RECOVERY:-}" == "true" ]]; then
     echo "Testing the repository..."
     borg list :: > >( /usr/local/bin/borg-silencer.pl 2>&1 ) 2>&1
 else
@@ -411,9 +409,9 @@ else
 
     BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
 
-    if [[ "$IMMEDIATE_BACKUP" ]]; then
+    if [[ "${IMMEDIATE_BACKUP:-}" == "true" ]]; then
         # use "su -" this time, because we want to emulate a cronny environment
-        su - -c $BORGMATIC > /tmp/borg-immediate-backup.log 2>&1 &
+        su - -c "$BORGMATIC" > /tmp/borg-immediate-backup.log 2>&1 &
     fi
 fi
 
@@ -441,7 +439,7 @@ Encryption passphrase = $BORG_PASSPHRASE
 Encryption keyfile = $BORG_KEYFILE , contents follow:
 EOF
 # force onto one line; ansible does fancy stuff with multiline output
-cat $BORG_KEYFILE | tr '\r\n' ' '
+cat "$BORG_KEYFILE" | tr '\r\n' ' '
 cat <<EOF
 
 The above has been saved in /root/.config/borg/keys and /root/.bashrc
