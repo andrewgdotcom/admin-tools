@@ -34,6 +34,9 @@ fi
 # pam_ssh_agent_auth, so denying root login outright has minimal effect.
 keyval-add /etc/rkhunter.conf ALLOW_SSH_ROOT_USER without-password
 
-rkhunter --update
+try rkhunter --update
+if catch error && [[ "$error" != 2 ]]; then
+    die $error "rkhunter failed to download updates"
+fi
 rkhunter --propupd
 rkhunter --cronjob --report-warnings-only
