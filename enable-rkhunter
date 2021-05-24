@@ -3,6 +3,7 @@
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 . "${SCRIPT_DIR}/poshlib/poshlib.sh" || exit 1
 use swine
+use keyval
 
 # Set up rkhunter. This should be called late in the installation process.
 
@@ -17,14 +18,21 @@ fi
 
 # rkhunter is enabled automatically on centos, but not under apt
 if [[ -f /etc/default/rkhunter ]]; then
-  sed -i -e 's/^CRON_DAILY_RUN=.*$/CRON_DAILY_RUN="yes"/' /etc/default/rkhunter
-  sed -i -e 's/^CRON_DB_UPDATE=.*$/CRON_DB_UPDATE="yes"/' /etc/default/rkhunter
-  sed -i -e 's/^APT_AUTOGEN=.*$/APT_AUTOGEN="yes"/' /etc/default/rkhunter
 
-  sed -i -e 's/^UPDATE_MIRRORS=.*$/UPDATE_MIRRORS=1/' /etc/rkhunter.conf
-  sed -i -e 's/^MIRRORS_MODE=.*$/MIRRORS_MODE=0/' /etc/rkhunter.conf
-  sed -i -e 's/^WEB_CMD=.*$/WEB_CMD=""/' /etc/rkhunter.conf
+    keyval-add /etc/default/rkhunter CRON_DAILY_RUN yes
+    keyval-add /etc/default/rkhunter CRON_DB_UPDATE yes
+    keyval-add /etc/default/rkhunter APT_AUTOGEN yes
+
+    keyval-add /etc/rkhunter.conf UPDATE_MIRRORS 1
+    keyval-add /etc/rkhunter.conf MIRRORS_MODE 1
+    keyval-delete --comment /etc/rkhunter.conf WEB_CMD
+
 fi
+
+# Allow root user without password (i.e. ssh pubkey)
+# If Mallory has a privileged ssh key, they can trivially escalate using
+# pam_ssh_agent_auth, so denying root login outright has minimal effect.
+keyval-add /etc/rkhunter.conf ALLOW_SSH_ROOT_USER without-password
 
 rkhunter --update
 rkhunter --propupd
