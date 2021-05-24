@@ -24,7 +24,7 @@ if [[ -f /etc/default/rkhunter ]]; then
     keyval-add /etc/default/rkhunter APT_AUTOGEN yes
 
     keyval-add /etc/rkhunter.conf UPDATE_MIRRORS 1
-    keyval-add /etc/rkhunter.conf MIRRORS_MODE 1
+    keyval-add /etc/rkhunter.conf MIRRORS_MODE 0
     keyval-delete --comment /etc/rkhunter.conf WEB_CMD
 
 fi
