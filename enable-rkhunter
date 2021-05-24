@@ -36,4 +36,4 @@ keyval-add /etc/rkhunter.conf ALLOW_SSH_ROOT_USER without-password
 
 rkhunter --update
 rkhunter --propupd
-rkhunter --check
+rkhunter --cronjob --report-warnings-only
