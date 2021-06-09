@@ -39,4 +39,4 @@ if catch error && [[ "$error" != 2 ]]; then
     die $error "rkhunter failed to download updates"
 fi
 rkhunter --propupd
-rkhunter --cronjob --report-warnings-only
+rkhunter --cronjob --report-warnings-only || true
