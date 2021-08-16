@@ -102,7 +102,7 @@ EOF
         }')
         json[${#json[*]}]="\"cert$count\": $(pem2json "$output")"
     done
-    printf "%s" "\"$url\": { \"_type\": \"url\", $(IFS=, ; echo "${json[*]:-}") }"
+    printf "%s" "\"$url\": { \"_type\": \"url\", $(IFS=, ; echo "${json[*]:-"\"error\": \"no data\""}") }"
   }
 
   parsejks() {
@@ -115,7 +115,7 @@ EOF
         output=$(keytool -keystore "$keystore" -exportcert -rfc -alias "$alias" </dev/null 2>/dev/null)
         json[${#json[*]}]="\"$alias\": $(pem2json "$output")"
     done
-    printf "%s" "\"$keystore\": { \"_type\": \"jks\", $(IFS=, ; echo "${json[*]:-}") }"
+    printf "%s" "\"$keystore\": { \"_type\": \"jks\", $(IFS=, ; echo "${json[*]:-"\"error\": \"no data\""}") }"
   }
 
   parsepem() {
@@ -133,7 +133,7 @@ EOF
         }' < "$pemfile")
         json[${#json[*]}]="\"cert$count\": $(pem2json "$output")"
     done
-    printf "%s" "\"$pemfile\": { \"_type\": \"pem\", $(IFS=, ; echo "${json[*]:-}") }"
+    printf "%s" "\"$pemfile\": { \"_type\": \"pem\", $(IFS=, ; echo "${json[*]:-"\"error\": \"no data\""}") }"
   }
 
   ####
