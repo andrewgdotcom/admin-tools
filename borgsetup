@@ -415,13 +415,6 @@ else
     fi
 fi
 
-# If we got this far, it must have worked. Save our settings in .bashrc so we
-# don't have to supply them when using borg by hand.
-cat >> /root/.bashrc <<EOF
-
-. /usr/local/bin/borg-env
-EOF
-
 cat >> /usr/local/bin/borg-env <<EOF
 export BORG_REPO=\$($YQ -r .location.repositories[0] </etc/borgmatic/config.yaml)
 export BORG_PASSPHRASE=\$($YQ -r .storage.encryption_passphrase </etc/borgmatic/config.yaml)
