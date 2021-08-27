@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# A tool to become a non-root user while allowing ssh agent access
+# Adapted from https://serverfault.com/a/698042/254476
+
+#                   ****** BEWARE! ******
+# This will allow anyone logged in as the target user to use your personal
+# SSH agent so long as the sudo session remains active.
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+# shellcheck disable=SC1090
+. "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
+use swine
+use parse-opt
+
+[[ ${SSH_AUTH_SOCK:-} ]] && ssh-add -L 2>&1 >/dev/null || \
+    die 1 "No SSH agent detected"
+
+# save our full arg list verbatim; we don't want to consume them
+sudo_args=("$@")
+
+while [[ "$@" ]]; do
+    arg="$1"
+    shift
+    if [[ "$arg" == "--" ]]; then
+        break
+    elif [[ "$arg" == "-u" || "$arg" == "--user" ]]; then
+        target_user="$1"
+        break
+    fi
+done
+
+[[ ${target_user:-} && "$target_user" != root ]] || \
+    die 2 "Use 'sudo' for root access"
+target_user="${target_user%%:*}" # don't allow colons in the username
+
+# Make a list of all directories that need to be ACLed to the target user
+acl_dirs=()
+dir=$(dirname "$SSH_AUTH_SOCK")
+while [[ ${dir:-} != / ]]; do
+    other_perm=$(getfacl "$dir" 2>/dev/null | awk -F: "/^other:/ { print \$3; }")
+    if [[ "${other_perm%x}" == "$other_perm" ]]; then
+        user_perm=$(getfacl -e "$dir" 2>/dev/null | awk -F: "/^user:$target_user:/ { print \$4; }")
+        if [[ "${user_perm%x}" == "$user_perm" ]]; then
+            # Ultra-safe bash array expansion
+            # https://gist.github.com/dimo414/2fb052d230654cc0c25e9e41a9651ebe
+            acl_dirs=( ${acl_dirs[@]+"${acl_dirs[@]}"} "$dir" )
+        fi
+    fi
+    dir=$(dirname "$dir")
+done
+
+# Make sure we setfacl back to normal on any exit, good or bad
+exit_trap() {
+    setfacl -x "$target_user" "${acl_dirs[@]}" "$SSH_AUTH_SOCK"
+}
+trap exit_trap EXIT
+
+setfacl -m "$target_user":x "${acl_dirs[@]}"
+setfacl -m "$target_user":rwx "$SSH_AUTH_SOCK"
+
+sudo SSH_AUTH_SOCK="$SSH_AUTH_SOCK" "${sudo_args[@]}"
