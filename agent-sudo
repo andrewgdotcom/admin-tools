@@ -24,7 +24,7 @@ while [[ "$@" ]]; do
     shift
     if [[ "$arg" == "--" ]]; then
         break
-    elif [[ "$arg" == "-u" || "$arg" == "--user" ]]; then
+    elif [[ "$arg" == "--user" || "${arg%u}" != "$arg" && "${arg#-}" != "$arg" && "${arg#--}" == "$arg" ]]; then
         target_user="$1"
         break
     fi
