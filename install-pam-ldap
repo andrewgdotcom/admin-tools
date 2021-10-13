@@ -36,12 +36,20 @@ fi
 if [[ $APT ]]; then
 
   cat >/tmp/debconf-selections <<EOF
+# Pre-bullseye
 ldap-auth-config ldap-auth-config/ldapns/ldap_version select 3
 ldap-auth-config ldap-auth-config/dblogin boolean false
 ldap-auth-config ldap-auth-config/move-to-debconf boolean true
 ldap-auth-config ldap-auth-config/ldapns/ldap-server string ${LDAP_SERVERS}
 ldap-auth-config ldap-auth-config/ldapns/base-dn string ${BASE_DN}
 ldap-auth-config ldap-auth-config/dbrootlogin boolean false
+# bullseye
+libpam-ldap shared/ldapns/ldap_version select 3
+libpam-ldap libpam-ldap/dblogin boolean false
+libpam-ldap shared/ldapns/ldap-server string ${LDAP_SERVERS}
+libpam-ldap shared/ldapns/base-dn string ${BASE_DN}
+libpam-ldap libpam-ldap/override boolean true
+libpam-ldap libpam-ldap/dbrootlogin boolean false
 EOF
 
   debconf-set-selections /tmp/debconf-selections
