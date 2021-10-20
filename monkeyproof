@@ -18,8 +18,7 @@ elif [[ -d /etc/yum ]]; then
 	SUDO=wheel
 	SSH=sshd
 else
-	echo "Distribution not supported!"
-	exit -1
+	die 2 "Distribution not supported!"
 fi
 
 MS_HOME=/var/lib/monkeysphere
@@ -225,21 +224,26 @@ chmod +x /etc/cron.hourly/monkeysphere
 
 # Now configure sshd to read the monkeysphere keys
 
-if grep -Eq '^\s*AuthorizedKeysFile\s+%h/.ssh/authorized_keys\s+/var/lib/monkeysphere/authorized_keys/%u\s*$' /etc/ssh/sshd_config; then
+SSHD_CONFIG=/etc/ssh/sshd_config
+
+if grep -q '^Include /etc/ssh/sshd_config\.d/\*\.conf$' "$SSHD_CONFIG"; then
+    SSHD_MS_CONFIG=/etc/ssh/sshd_config.d/99-monkeysphere.conf
+    if [[ -f "$SSHD_MS_CONFIG" ]]; then
+        mv "$SSHD_MS_CONFIG"{,.bak}
+    fi
+else
+    SSHD_MS_CONFIG=$SSHD_CONFIG
+fi
+
+if grep -Eq '^\s*AuthorizedKeysFile\s+%h/.ssh/authorized_keys\s+/var/lib/monkeysphere/authorized_keys/%u\s*$' "$SSHD_CONFIG"; then
 	# If we find our own handiwork, do nothing; this is for idempotency
 	echo "SSHD already configured for monkeysphere"
-elif grep -Eq '^\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
-	# If there exists a working AuthorizedKeysFile line, comment it out and insert above it
-	perl -pi.bak -e 'if(!$done && s!^(\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n#$1!) {$done=1;}' /etc/ssh/sshd_config
-	ssh_restart=true
-elif grep -Eq '^\s*#+\s*AuthorizedKeysFile\s+' /etc/ssh/sshd_config; then
-	# If there exists only a commented out AuthorizedKeysFile, insert above it
-	perl -pi.bak -e 'if(!$done && s!^(\s*#+\s*AuthorizedKeysFile)!AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u\n$1!) {$done=1;}' /etc/ssh/sshd_config
-	ssh_restart=true
 else
-	# Otherwise append with an explanation
-	cat >> /etc/ssh/sshd_config <<EOF
-
+  if grep -Eq '^\s*AuthorizedKeysFile\s+' "$SSHD_CONFIG"; then
+	  # If there exists a working AuthorizedKeysFile line, comment it out
+	  perl -pi.bak -e 's/^(\s*AuthorizedKeysFile)/#$1/' "$SSHD_CONFIG"
+  fi
+  cat >> "$SSHD_MS_CONFIG" <<EOF
 # Added automatically by monkeyproof script
 # Allow logins with both user-supplied keys and monkeysphere's curated keys
 AuthorizedKeysFile %h/.ssh/authorized_keys /var/lib/monkeysphere/authorized_keys/%u
@@ -248,27 +252,23 @@ EOF
 fi
 
 # Also fix StreamLocalBindUnlink while we're here
-if grep -Eq '^\s*StreamLocalBindUnlink\s+yes' /etc/ssh/sshd_config; then
-    echo "StreamLocalBindUnlink already enabled"
-elif grep -Eq '^\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
-    # Replace the uncommented StreamLocalBindUnlink line with ours
-    perl -pi.bak -e 'if(!$done && s/^(\s*StreamLocalBindUnlink\s.*)$/StreamLocalBindUnlink yes/) {$done=1;}' /etc/ssh/sshd_config
-    ssh_restart=true
-elif grep -Eq '^\s*#+\s*StreamLocalBindUnlink\s' /etc/ssh/sshd_config; then
-    # Replace the first commented StreamLocalBindUnlink line with ours
-    perl -pi.bak -e 'if(!$done && s/^(\s*#+\s*StreamLocalBindUnlink\s.*)$/StreamLocalBindUnlink yes/) {$done=1;}' /etc/ssh/sshd_config
-    ssh_restart=true
+if grep -Eq '^\s*StreamLocalBindUnlink\s+yes' "$SSHD_CONFIG"; then
+	# If we find our own handiwork, do nothing; this is for idempotency
+  echo "StreamLocalBindUnlink already enabled"
 else
-    cat >> /etc/ssh/sshd_config <<EOF
-
+  if grep -Eq '^\s*StreamLocalBindUnlink\s' "$SSHD_CONFIG"; then
+    # If there is a working StreamLocalBindUnlink line, comment it out
+    perl -pi.bak2 -e 's/^(\s*StreamLocalBindUnlink\s.*)$/#$1/' "$SSHD_CONFIG"
+  fi
+  cat >> "$SSHD_MS_CONFIG" <<EOF
 # Added automatically by monkeyproof script
 # Delete forwarded domain sockets once they're no longer required
 StreamLocalBindUnlink yes
 EOF
-    ssh_restart=true
+  ssh_restart=true
 fi
 
-if [[ $ssh_restart ]]; then
+if [[ ${ssh_restart:-} ]]; then
     service "$SSH" restart
 fi
 
@@ -299,8 +299,7 @@ EOF
 	if apt-get -y install pam-ssh-agent-auth; then
 		echo "Installed pam-ssh-agent-auth from andrewg.com"
 	else
-		echo "FATAL: Could not install (lib)pam-ssh-agent-auth"
-		exit 1
+		die 3 "FATAL: Could not install (lib)pam-ssh-agent-auth"
 	fi
   fi
 
