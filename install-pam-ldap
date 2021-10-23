@@ -34,6 +34,9 @@ if [[ -f ~/.install-pam-ldap ]]; then
 fi
 
 if [[ $APT ]]; then
+  # The only way to reliably use debconf is to purge, config and reinstall.
+  # If the package is already installed then debconf *does nothing*
+  apt-get -y purge libpam-ldap || true
 
   cat >/tmp/debconf-selections <<EOF
 # Pre-bullseye
