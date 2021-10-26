@@ -15,10 +15,8 @@ ZEROTIER_INTERFACES=$(zerotier-cli listnetworks |grep PRIVATE|awk '{print $8}')
 # default to disabling iptables
 : "${DISABLE_IPTABLES:=true}"
 
-apt-repo add docker "https://download.docker.com/linux/ubuntu xenial stable" https://download.docker.com/linux/ubuntu/gpg || true
-apt-get update
 # make sure the installer does not prompt; there's nobody listening
-DEBIAN_FRONTEND=noninteractive apt-get -y install docker-ce docker-compose
+DEBIAN_FRONTEND=noninteractive apt-get -y install docker.io docker-compose
 
 service docker stop
 
