@@ -27,6 +27,7 @@ master=$($YQ -r ".master" < $CONFIG)
 slaves=($($YQ -r ".slaves|.[]" < $CONFIG))
 includes=($($YQ -r ".includes|.[]" < $CONFIG))
 excludes=($($YQ -r ".excludes|.[]" < $CONFIG))
+options=$($YQ -r ".options|.[]" < $CONFIG)
 sshkey=$($YQ -r ".sshkey" < $CONFIG)
 
 exclude_flags=()
@@ -41,7 +42,7 @@ includes=("${includes[@]}" "$CONFIG" "$sshkey" "$sshkey.pub")
 
 cd /
 for slave in $slaves; do
-    rsync -a --relative -e "ssh -i $sshkey" \
+    rsync -a --relative -e "ssh -i $sshkey" "${options[@]}" \
         "${exclude_flags[@]}" "${includes[@]}" \
         ${slave}:/ 2>&1 | logger -t rsyncr
 done
