@@ -35,6 +35,22 @@ for exclude in "${excludes[@]}"; do
     exclude_flags=("${exclude_flags[@]}" "--exclude" "$exclude")
 done
 
+option_flags=()
+for option in "${options[@]}"; do
+    case "$option" in
+    "delete")
+        option_flags=("${exclude_flags[@]}" "--$option")
+        ;;
+    "")
+        # If yq finds no options, it returns the empty string; ignore this
+        ;;
+    *)
+        echo "Unsupported option '$option'; aborting"
+        exit 99
+        ;;
+    esac
+done
+
 # Also sync our own configuration, including ssh keys
 includes=("${includes[@]}" "$CONFIG" "$sshkey" "$sshkey.pub")
 
@@ -42,7 +58,7 @@ includes=("${includes[@]}" "$CONFIG" "$sshkey" "$sshkey.pub")
 
 cd /
 for slave in $slaves; do
-    rsync -a --relative -e "ssh -i $sshkey" "${options[@]}" \
+    rsync -a --relative -e "ssh -i $sshkey" "${option_flags[@]}" \
         "${exclude_flags[@]}" "${includes[@]}" \
         ${slave}:/ 2>&1 | logger -t rsyncr
 done
