@@ -13,6 +13,11 @@ trap err_report ERR
 CONFIG=/etc/rsyncr.conf
 YQ=/usr/local/bin/yq
 
+if [[ ! -f /etc/rsyncr.conf ]]; then
+    echo "No configuration"
+    exit 0
+fi
+
 # If another rsyncr job is running, complain and crash out.
 if ps ax|grep '[l]ogger -t rsyncr' >/dev/null; then
     echo "An rsyncr process is already running; aborting!"
@@ -22,7 +27,7 @@ fi
 # Only run if we are the designated master. This allows us to sync our own
 # configuration.
 master=$($YQ -r ".master" < $CONFIG)
-[[ "$master" == $(hostname --fqdn) ]] || exit 0
+[[ $master && "$master" == $(hostname --fqdn) ]] || exit 0
 
 slaves=($($YQ -r ".slaves|.[]" < $CONFIG))
 includes=($($YQ -r ".includes|.[]" < $CONFIG))
