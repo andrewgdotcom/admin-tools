@@ -26,8 +26,8 @@ master=$($YQ -r ".master" < $CONFIG)
 
 slaves=($($YQ -r ".slaves|.[]" < $CONFIG))
 includes=($($YQ -r ".includes|.[]" < $CONFIG))
-excludes=($($YQ -r ".excludes|.[]" < $CONFIG))
-options=$($YQ -r ".options|.[]" < $CONFIG)
+excludes=($($YQ -r ".excludes|.[]?" < $CONFIG))
+options=$($YQ -r ".options|.[]?" < $CONFIG)
 sshkey=$($YQ -r ".sshkey" < $CONFIG)
 
 exclude_flags=()
