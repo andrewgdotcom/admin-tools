@@ -42,7 +42,7 @@ for include in "${includes[@]}"; do
     esac
 done
 
-if [[ ! ${includes[0]:-} ]]; then
+if [[ ! ${include_list[0]:-} ]]; then
     echo "Must include at least one source"
     exit 2
 fi
@@ -69,7 +69,7 @@ for option in "${options[@]}"; do
 done
 
 # Also sync our own configuration, including ssh keys
-includes=("${includes[@]}" "$CONFIG" "$sshkey" "$sshkey.pub")
+include_list=("${include_list[@]}" "$CONFIG" "$sshkey" "$sshkey.pub")
 
 # fire in the hole
 
