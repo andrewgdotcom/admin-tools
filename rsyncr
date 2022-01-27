@@ -75,7 +75,7 @@ includes=("${includes[@]}" "$CONFIG" "$sshkey" "$sshkey.pub")
 
 cd /
 for slave in "${slaves[@]}"; do
-    [[ $slave != $master ]] || continue
+    [[ $slave && $slave != $master ]] || continue
     rsync -a --relative -e "ssh -i $sshkey" "${option_flags[@]}" \
         "${exclude_flags[@]}" "${include_list[@]}" \
         ${slave}:/ 2>&1 | logger -t rsyncr
