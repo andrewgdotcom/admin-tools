@@ -30,6 +30,23 @@ excludes=($($YQ -r ".excludes|.[]?" < $CONFIG))
 options=$($YQ -r ".options|.[]?" < $CONFIG)
 sshkey=$($YQ -r ".sshkey" < $CONFIG)
 
+include_list=()
+for include in "${includes[@]}"; do
+    case "$include" in
+    "")
+        # Strip empty strings, as rsync maps these to "/" (!!!)
+        ;;
+    *)
+        include_list=("${include_list[@]}" "$include")
+        ;;
+    esac
+done
+
+if [[ ! ${includes[0]:-} ]]; then
+    echo "Must include at least one source"
+    exit 2
+fi
+
 exclude_flags=()
 for exclude in "${excludes[@]}"; do
     exclude_flags=("${exclude_flags[@]}" "--exclude" "$exclude")
@@ -58,7 +75,8 @@ includes=("${includes[@]}" "$CONFIG" "$sshkey" "$sshkey.pub")
 
 cd /
 for slave in "${slaves[@]}"; do
+    [[ $slave != $master ]] || continue
     rsync -a --relative -e "ssh -i $sshkey" "${option_flags[@]}" \
-        "${exclude_flags[@]}" "${includes[@]}" \
+        "${exclude_flags[@]}" "${include_list[@]}" \
         ${slave}:/ 2>&1 | logger -t rsyncr
 done
