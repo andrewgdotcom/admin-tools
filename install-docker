@@ -126,15 +126,6 @@ if unbound-control status | grep -q "is running"; then
 	echo "Unbound detected"
 	echo "Attempting to configure docker to use local DNS resolver"
 
-	if [[ -f /etc/docker/daemon.json ]]; then
-		echo "Docker appears to be already configured. Aborting"
-        exit 1
-	fi
-	if [[ -f /etc/unbound/unbound.conf.d/server.conf ]]; then
-		echo "Unbound appears to be already configured. Aborting"
-        exit 1
-	fi
-
 	if [[ $DISABLE_IPTABLES == true ]] ; then
 		cat > /etc/docker/daemon.json <<EOF
 {
