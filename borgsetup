@@ -34,18 +34,20 @@ REMOTE_DIRECTORY=borg
 # List of directories to back up
 BACKUP_SOURCES=( /home /etc /var /srv /usr/local /data /opt )
 
+# Where to search for borgmatic
+BORGMATIC=/usr/bin/borgmatic
+ADDITIONAL_PATH=""
+
 # If we are using a local directory, configure it here.
 #LOCAL_DIRECTORY=/var/backups/borg/
 
 if [[ -d /etc/apt ]]; then
     APT=true
     SUDO=sudo
-    BORGMATIC=/usr/local/bin/borgmatic
     CRON=cron
 elif [[ -d /etc/yum ]]; then
     YUM=true
     SUDO=wheel
-    BORGMATIC=/usr/bin/borgmatic
     CRON=crond
 else
 	die -1 "Distribution not supported!"
@@ -185,9 +187,13 @@ if [[ "${APT:-}" == "true" ]]; then
 		apt-get update
 	fi
 	apt-get -y install borgbackup python3-pip
+    # borgmatic is packaged in recent linuxes
+    apt-get -y install borgmatic || true
   fi
 elif [[ "${YUM:-}" == "true" ]]; then
 	yum -y --setopt=skip_missing_names_on_install=False install borgbackup python34-pip
+    # try installing borgmatic in case it is packaged
+    yum -y --setopt=skip_missing_names_on_install=False install borgmatic || true
 fi
 
 if ! $YQ . </dev/null 2>/dev/null; then
@@ -204,6 +210,8 @@ if [[ ! -x "$BORGMATIC" && -z "${WHICH:-}" ]]; then
     if [[ ! -x "$BORGMATIC" ]]; then
         if [[ -n "${WHICH:-}" ]]; then
             BORGMATIC="$WHICH"
+            # beware the trailing space!
+            ADDITIONAL_PATH="PATH=\$PATH:$(dirname "$BORGMATIC") "
         else
             die 9 "Cannot find borgmatic anywhere; aborting."
         fi
@@ -228,14 +236,14 @@ if [[ -f /usr/local/bin/borg-silencer.pl || -f "$SCRIPT_DIR/borg-silencer.pl" ]]
     cat > /etc/cron.d/borgmatic <<EOF
 10 0 * * * root test -x /usr/bin/mysqldump && test -d /run/mysqld && mysqldump -A -R -E --single-transaction --add-drop-table --triggers > /var/backups/mysql
 20 0 * * * root test -x /usr/bin/pg_dumpall && test -d /run/postgresql && cd /tmp && sudo -u postgres pg_dumpall > /var/backups/postgres
-$RANDMIN $RANDHOUR * * * root /bin/bash -c "PATH=\$PATH:/usr/local/bin $BORGMATIC > >( /usr/local/bin/borg-silencer.pl 2>&1 ) 2>&1 | logger -t borgmatic"
+$RANDMIN $RANDHOUR * * * root /bin/bash -c "$ADDITIONAL_PATH$BORGMATIC > >( /usr/local/bin/borg-silencer.pl 2>&1 ) 2>&1 | logger -t borgmatic"
 EOF
 else
     # We need to escape $PATH so that it is evaluated by cron, not here
     cat > /etc/cron.d/borgmatic <<EOF
 10 0 * * * root test -x /usr/bin/mysqldump && test -d /run/mysqld && mysqldump -A -R -E --single-transaction --add-drop-table --triggers > /var/backups/mysql
 20 0 * * * root test -x /usr/bin/pg_dumpall && test -d /run/postgresql && cd /tmp && sudo -u postgres pg_dumpall > /var/backups/postgres
-$RANDMIN $RANDHOUR * * * root /bin/bash -c "PATH=\$PATH:/usr/local/bin $BORGMATIC | logger -t borgmatic"
+$RANDMIN $RANDHOUR * * * root /bin/bash -c "$ADDITIONAL_PATH$BORGMATIC | logger -t borgmatic"
 EOF
 fi
 
