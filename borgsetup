@@ -50,7 +50,7 @@ elif [[ -d /etc/yum ]]; then
     SUDO=wheel
     CRON=crond
 else
-	die -1 "Distribution not supported!"
+	die 2 "Distribution not supported!"
 fi
 
 
@@ -75,26 +75,26 @@ if [[ ! "$(sudo bash -c 'echo $SSH_AUTH_SOCK')" ]]; then
 	echo "sudo is not passing through \$SSH_AUTH_SOCK. This script will not work until you fix it."
 	echo "Try setting \'Defaults env_keep += \"SSH_AUTH_SOCK\"\' under /etc/sudoers.d"
 	echo "Or did you forget to run monkeyproof?"
-	exit 1
+	exit 3
 fi
 
 HOSTNAME=$(hostname)
 case "$HOSTNAME" in
 *localhost*|*localdomain*|*dedibox* )
-	die 10 "Your hostname $HOSTNAME is not configured properly, aborting"
+	die 4 "Your hostname $HOSTNAME is not configured properly, aborting"
 	;;
 esac
 
 # If LOCAL_DIRECTORY is defined, it overrides remote configuration
 if [[ "${LOCAL_DIRECTORY:-}" ]]; then
 	if [[ "$LOCAL_DIRECTORY" = "/" ]]; then
-		die 1 "Don't use / as your backup location! Aborting."
+		die 6 "Don't use / as your backup location! Aborting."
 	fi
 	REPO_LOCATION="$LOCAL_DIRECTORY"
 elif [[ "${REMOTE_HOST:-}" ]]; then
 	REPO_LOCATION="${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIRECTORY}"
 else
-	die 1 "Need to configure either a remote or local repo"
+	die 7 "Need to configure either a remote or local repo"
 fi
 
 # Canonicalise our location
@@ -134,7 +134,7 @@ if [[ "${REMOTE_HOST:-}" ]]; then
 
     # Make sure the remote host is usable and the parent directory exists
     if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" -- mkdir -p "${REPO_LOCATION}"; then
-        die 99 "Can't run necessary commands on remote host, aborting"
+        die 8 "Can't run necessary commands on remote host, aborting"
     fi
 
     # Sanity check for pre-existing repo
@@ -187,37 +187,34 @@ if [[ "${APT:-}" == "true" ]]; then
 		apt-get update
 	fi
 	apt-get -y install borgbackup python3-pip
-    # borgmatic is packaged in recent linuxes
-    apt-get -y install borgmatic || true
+    # try installing borgmatic from distro; fall back to pip
+    apt-get -y install borgmatic \
+        || pip3 install borgmatic \
+        || die 11 "Could not install borgmatic; aborting."
   fi
 elif [[ "${YUM:-}" == "true" ]]; then
 	yum -y --setopt=skip_missing_names_on_install=False install borgbackup python34-pip
-    # try installing borgmatic in case it is packaged
-    yum -y --setopt=skip_missing_names_on_install=False install borgmatic || true
+    # try installing borgmatic from distro; fall back to pip
+    yum -y --setopt=skip_missing_names_on_install=False install borgmatic \
+        || pip3 install borgmatic \
+        || die 11 "Could not install borgmatic; aborting."
 fi
 
 if ! $YQ . </dev/null 2>/dev/null; then
     pip3 install yq || die 12 "Could not install yq; aborting."
 fi
 
-# Temporarily set PATH to be promiscuous so that we can find borgmatic
-PATH_SAVE=$PATH
-PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH
-WHICH=$(which borgmatic 2>/dev/null || true)
-if [[ ! -x "$BORGMATIC" && -z "${WHICH:-}" ]]; then
-    pip3 install borgmatic
-    WHICH=$(which borgmatic 2>/dev/null || true)
-    if [[ ! -x "$BORGMATIC" ]]; then
-        if [[ -n "${WHICH:-}" ]]; then
-            BORGMATIC="$WHICH"
-            # beware the trailing space!
-            ADDITIONAL_PATH="PATH=\$PATH:$(dirname "$BORGMATIC") "
-        else
-            die 9 "Cannot find borgmatic anywhere; aborting."
-        fi
-    fi
+if [[ ! -x "$BORGMATIC" ]]; then
+    # Temporarily set PATH to be promiscuous so that we can find borgmatic
+    PATH_SAVE=$PATH
+    PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:$PATH
+    BORGMATIC=$(which borgmatic 2>/dev/null || true)
+    [[ -n "${BORGMATIC:-}" ]] || die 9 "Cannot find borgmatic anywhere; aborting."
+    # We need to escape $PATH so that it is evaluated by cron, not here
+    # beware the trailing space!
+    ADDITIONAL_PATH="PATH=\$PATH:$(dirname "$BORGMATIC") "
+    PATH=$PATH_SAVE
 fi
-PATH=$PATH_SAVE
 
 if [[ ! -d /etc/borgmatic ]]; then
 	mkdir /etc/borgmatic
@@ -232,14 +229,12 @@ if [[ -f /usr/local/bin/borg-silencer.pl || -f "$SCRIPT_DIR/borg-silencer.pl" ]]
         cp "$SCRIPT_DIR/borg-silencer.pl" /usr/local/bin/
         chmod +x /usr/local/bin/borg-silencer.pl
     fi
-    # We need to escape $PATH so that it is evaluated by cron, not here
     cat > /etc/cron.d/borgmatic <<EOF
 10 0 * * * root test -x /usr/bin/mysqldump && test -d /run/mysqld && mysqldump -A -R -E --single-transaction --add-drop-table --triggers > /var/backups/mysql
 20 0 * * * root test -x /usr/bin/pg_dumpall && test -d /run/postgresql && cd /tmp && sudo -u postgres pg_dumpall > /var/backups/postgres
 $RANDMIN $RANDHOUR * * * root /bin/bash -c "$ADDITIONAL_PATH$BORGMATIC > >( /usr/local/bin/borg-silencer.pl 2>&1 ) 2>&1 | logger -t borgmatic"
 EOF
 else
-    # We need to escape $PATH so that it is evaluated by cron, not here
     cat > /etc/cron.d/borgmatic <<EOF
 10 0 * * * root test -x /usr/bin/mysqldump && test -d /run/mysqld && mysqldump -A -R -E --single-transaction --add-drop-table --triggers > /var/backups/mysql
 20 0 * * * root test -x /usr/bin/pg_dumpall && test -d /run/postgresql && cd /tmp && sudo -u postgres pg_dumpall > /var/backups/postgres
@@ -365,7 +360,7 @@ if [[ -z "${REMOTE_HOST:-}" ]]; then
 	echo "$BORG_REPO" >> /etc/borgmatic/excludes.src
 fi
 
-/etc/borgmatic/build-excludes || die 10 "Could not build excludes list"
+/etc/borgmatic/build-excludes || die 13 "Could not build excludes list"
 
 # Make sure ordinary users can't read our passphrase etc.
 chmod -R o= /etc/borgmatic
@@ -413,7 +408,7 @@ if [[ "${RECOVERY:-}" == "true" ]]; then
 else
     # We need to su properly to root, otherwise borg makes a mess in our homedir
     # But don't use "su -", because we want to keep our other environment.
-    su -c "borg init -e keyfile ${BORG_REPO}" || die 4 "Could not initialise repository"
+    su -c "borg init -e keyfile ${BORG_REPO}" || die 14 "Could not initialise repository"
 
     BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
 
