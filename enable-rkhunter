@@ -16,23 +16,43 @@ else
 	exit -1
 fi
 
-# rkhunter is enabled automatically on centos, but not under apt
-if [[ -f /etc/default/rkhunter ]]; then
+HIDDEN_DIRS=(/etc/.git /etc/.bzr)
+HIDDEN_FILES=(/etc/.gitignore /etc/.bzrignore /etc/.etckeeper /etc/.updated)
 
+if [[ ${APT:-} ]]; then
+
+    # rkhunter is enabled automatically on centos, but not under APT
     keyval-add /etc/default/rkhunter CRON_DAILY_RUN yes
     keyval-add /etc/default/rkhunter CRON_DB_UPDATE yes
     keyval-add /etc/default/rkhunter APT_AUTOGEN yes
 
+    # rkhunter's default APT configuration is bad
     keyval-add /etc/rkhunter.conf UPDATE_MIRRORS 1
     keyval-add /etc/rkhunter.conf MIRRORS_MODE 0
     keyval-delete --comment /etc/rkhunter.conf WEB_CMD
 
-fi
+    for dir in "${HIDDEN_DIRS[@]}"; do
+        keyval-add /etc/rkhunter.conf ALLOWHIDDENDIR "${dir}"
+    done
+    for file in "${HIDDEN_FILES[@]}"; do
+        keyval-add /etc/rkhunter.conf ALLOWHIDDENFILE "${file}"
+    done
 
-# Allow root user without password (i.e. ssh pubkey)
-# If Mallory has a privileged ssh key, they can trivially escalate using
-# pam_ssh_agent_auth, so denying root login outright has minimal effect.
-keyval-add /etc/rkhunter.conf ALLOW_SSH_ROOT_USER without-password
+    # Allow root user without password (i.e. ssh pubkey)
+    # If Mallory has a privileged ssh key, they can trivially escalate using
+    # pam_ssh_agent_auth, so denying root login outright has minimal effect.
+    #
+    # This is the default under APT, so the parameter should be unset
+    keyval-add /etc/rkhunter.conf ALLOW_SSH_ROOT_USER unset
+
+elif [[ ${YUM:-} ]]; then
+
+    # Allow root user without password (i.e. ssh pubkey)
+    # If Mallory has a privileged ssh key, they can trivially escalate using
+    # pam_ssh_agent_auth, so denying root login outright has minimal effect.
+    keyval-add /etc/rkhunter.conf ALLOW_SSH_ROOT_USER without-password
+
+fi
 
 try rkhunter --update
 if catch error && [[ "$error" != 2 ]]; then
