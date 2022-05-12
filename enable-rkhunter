@@ -31,11 +31,12 @@ if [[ ${APT:-} ]]; then
     keyval-add /etc/rkhunter.conf MIRRORS_MODE 0
     keyval-delete --comment /etc/rkhunter.conf WEB_CMD
 
+    # rkhunter.conf supports cumulative definitions, use --multi
     for dir in "${HIDDEN_DIRS[@]}"; do
-        keyval-add /etc/rkhunter.conf ALLOWHIDDENDIR "${dir}"
+        keyval-add --multi /etc/rkhunter.conf ALLOWHIDDENDIR "${dir}"
     done
     for file in "${HIDDEN_FILES[@]}"; do
-        keyval-add /etc/rkhunter.conf ALLOWHIDDENFILE "${file}"
+        keyval-add --multi /etc/rkhunter.conf ALLOWHIDDENFILE "${file}"
     done
 
     # Allow root user without password (i.e. ssh pubkey)
