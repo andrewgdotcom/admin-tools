@@ -16,7 +16,7 @@ else
 	exit -1
 fi
 
-HIDDEN_DIRS=(/etc/.git /etc/.bzr)
+HIDDEN_DIRS=(/etc/.git /etc/.bzr /etc/.java)
 HIDDEN_FILES=(/etc/.gitignore /etc/.bzrignore /etc/.etckeeper /etc/.updated)
 
 if [[ ${APT:-} ]]; then
