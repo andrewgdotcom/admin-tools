@@ -16,8 +16,10 @@ else
 	exit -1
 fi
 
-HIDDEN_DIRS=(/etc/.git /etc/.bzr /etc/.java)
-HIDDEN_FILES=(/etc/.gitignore /etc/.bzrignore /etc/.etckeeper /etc/.updated)
+# Fix up broken default APT configuration
+APT_HIDDEN_DIRS=(/etc/.git /etc/.bzr /etc/.java)
+APT_HIDDEN_FILES=(/etc/.gitignore /etc/.bzrignore /etc/.etckeeper /etc/.updated)
+APT_SCRIPT_WHITELIST=(/usr/bin/lwp-request)
 
 if [[ ${APT:-} ]]; then
 
@@ -32,11 +34,14 @@ if [[ ${APT:-} ]]; then
     keyval-delete --comment /etc/rkhunter.conf WEB_CMD
 
     # rkhunter.conf supports cumulative definitions, use --multi
-    for dir in "${HIDDEN_DIRS[@]}"; do
+    for dir in "${APT_HIDDEN_DIRS[@]}"; do
         keyval-add --multi /etc/rkhunter.conf ALLOWHIDDENDIR "${dir}"
     done
-    for file in "${HIDDEN_FILES[@]}"; do
+    for file in "${APT_HIDDEN_FILES[@]}"; do
         keyval-add --multi /etc/rkhunter.conf ALLOWHIDDENFILE "${file}"
+    done
+    for script in "${APT_SCRIPT_WHITELIST[@]}"; do
+        keyval-add --multi /etc/rkhunter.conf SCRIPTWHITELIST "${file}"
     done
 
     # Allow root user without password (i.e. ssh pubkey)
