@@ -41,6 +41,7 @@ if [[ ${APT:-} ]]; then
         keyval-add --multi /etc/rkhunter.conf ALLOWHIDDENFILE "${file}"
     done
     for script in "${APT_SCRIPT_WHITELIST[@]}"; do
+        # rkhunter borks if SCRIPTWHITELIST references nonexistent files
         [[ ! -f "$script" ]] || keyval-add --multi /etc/rkhunter.conf SCRIPTWHITELIST "${script}"
     done
 
