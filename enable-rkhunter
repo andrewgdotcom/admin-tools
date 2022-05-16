@@ -41,7 +41,7 @@ if [[ ${APT:-} ]]; then
         keyval-add --multi /etc/rkhunter.conf ALLOWHIDDENFILE "${file}"
     done
     for script in "${APT_SCRIPT_WHITELIST[@]}"; do
-        keyval-add --multi /etc/rkhunter.conf SCRIPTWHITELIST "${file}"
+        [[ ! -f "$script" ]] || keyval-add --multi /etc/rkhunter.conf SCRIPTWHITELIST "${script}"
     done
 
     # Allow root user without password (i.e. ssh pubkey)
