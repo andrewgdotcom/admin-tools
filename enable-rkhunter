@@ -19,6 +19,7 @@ fi
 # Fix up broken default APT configuration
 APT_HIDDEN_DIRS=(/etc/.git /etc/.bzr /etc/.java)
 APT_HIDDEN_FILES=(/etc/.gitignore /etc/.bzrignore /etc/.etckeeper /etc/.updated)
+APT_DEV_FILES=('/dev/shm/pulse-shm-*' '/dev/shm/squid-*' '/dev/shm/PostgeSQL.*')
 APT_SCRIPT_WHITELIST=(/usr/bin/lwp-request)
 
 if [[ ${APT:-} ]]; then
@@ -39,6 +40,9 @@ if [[ ${APT:-} ]]; then
     done
     for file in "${APT_HIDDEN_FILES[@]}"; do
         keyval-add --multi /etc/rkhunter.conf ALLOWHIDDENFILE "${file}"
+    done
+    for file in "${APT_DEV_FILES[@]}"; do
+        keyval-add --multi /etc/rkhunter.conf ALLOWDEVFILE "${file}"
     done
     for script in "${APT_SCRIPT_WHITELIST[@]}"; do
         # rkhunter borks if SCRIPTWHITELIST references nonexistent files
