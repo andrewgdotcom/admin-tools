@@ -45,6 +45,10 @@ if [[ ${APT:-} ]]; then
         [[ ! -f "$script" ]] || keyval-add --multi /etc/rkhunter.conf SCRIPTWHITELIST "${script}"
     done
 
+    # debian ships a version of sshd that doesn't implement ssh v1 protocol
+    # but debian's default rkhunter.conf still warns if sshd_config doesn't disable it
+    keyval-add /etc/rkhunter.conf ALLOW_SSH_PROT_v1 2
+
     # Allow root user without password (i.e. ssh pubkey)
     # If Mallory has a privileged ssh key, they can trivially escalate using
     # pam_ssh_agent_auth, so denying root login outright has minimal effect.
