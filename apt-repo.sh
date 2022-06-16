@@ -65,6 +65,12 @@ EOF
     REPO_CONFIG=$(sed 's/^\s*//; s/\s*$//; s/\s\s*/ /g' <<< "$REPO_CONFIG")
     # strip any leading "deb" from REPO_CONFIG; we put it back later.
     REPO_CONFIG="${REPO_CONFIG#deb }"
+    # strip any options and store them, we will put them back too.
+    if [[ $REPO_CONFIG =~ ^\[([^]]+)\]\ (.*)$ ]]; then
+      REPO_OPTIONS="${BASH_REMATCH[1]}"
+      REPO_CONFIG="${BASH_REMATCH[2]}"
+    fi
+    : ${REPO_OPTIONS:=arch=$ARCH}
 
     # sanity test to ensure we have a URL where we expect it
     repo_url="${REPO_CONFIG%% *}"
@@ -75,7 +81,7 @@ EOF
     cat <<EOF >"$SOURCES_FILE"
 # Created by $0 with: $BASENAME add $2 "$3" $4
 # To clean up use: $BASENAME remove $2
-deb [arch=$ARCH signed-by=$GPGKEY_FILE] $REPO_CONFIG
+deb [$REPO_OPTIONS signed-by=$GPGKEY_FILE] $REPO_CONFIG
 EOF
 
     TMPFILE=$(mktemp)
