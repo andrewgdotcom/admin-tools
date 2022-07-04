@@ -3,7 +3,8 @@
 # A quick script to explicitly allow ssh connections in from the calling IP
 
 allow-me() { (
-    use swine
+    use strict
+    use utils
     use parse-opt
 
     # shellcheck disable=SC2034

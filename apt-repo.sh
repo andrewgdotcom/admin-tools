@@ -6,7 +6,8 @@ if ! command -v curl >/dev/null 2>&1; then
 fi
 
 apt-repo() { (
-  use swine
+  use strict
+  use utils
 
   CURL_FLAGS="-LSsf"
 

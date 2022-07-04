@@ -1,6 +1,7 @@
 # shellcheck disable=SC2148
 certinfo() { (
-  use swine
+  use strict
+  use utils
 
   usage() {
     cat <<EOF

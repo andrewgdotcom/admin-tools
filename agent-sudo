@@ -10,7 +10,8 @@
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 # shellcheck disable=SC1090
 . "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
-use swine
+use strict
+use utils
 use parse-opt
 
 [[ ${SSH_AUTH_SOCK:-} ]] && ssh-add -L 2>&1 >/dev/null || \

@@ -6,7 +6,8 @@
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 # shellcheck disable=SC1090
 . "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
-use swine
+use strict
+use utils
 
 [[ "${1:-}" ]] || die 1 "Usage: $0 <host>[:<port>][,<host>[:<port]][,...] [<retries> [<retry_wait>]]"
 HOSTS=$(tr , " " <<< "$1")

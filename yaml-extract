@@ -2,8 +2,9 @@
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 # shellcheck disable=SC1090
 . "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
+use strict
+use utils
 use-from .
-use swine
 use yaml-elastic
 
 if [[ $1 == "-r" ]]; then

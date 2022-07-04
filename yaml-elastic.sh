@@ -10,7 +10,8 @@ if [[ ! -x $_KISLYUK_YQ ]] || ! $_KISLYUK_YQ --help | grep -q kislyuk/yq; then
 fi
 
 yaml-expand-forms() { (
-    use swine
+    use strict
+    use utils
 
     # recursively enumerate all the collapsed forms of a json entity
     # we leave out the outermost double quotes at each stage, to save time
@@ -30,7 +31,8 @@ yaml-expand-forms() { (
 ) }
 
 yaml-extract() { (
-    use swine
+    use strict
+    use utils
 
     # perform a recursive tree search for all collapsed forms of the search term
     local key="$1"
@@ -51,7 +53,8 @@ yaml-extract() { (
 ) }
 
 yaml-replace() { (
-    use swine
+    use strict
+    use utils
 
     # perform a recursive tree search for all collapsed forms of the search term
     local key=${1%%=*}
@@ -76,7 +79,8 @@ yaml-replace() { (
 ) }
 
 yaml-delete() { (
-    use swine
+    use strict
+    use utils
 
     # perform a recursive tree search for all collapsed forms of the search term
     local key=$1

@@ -2,7 +2,8 @@
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 . "${SCRIPT_DIR}/poshlib/poshlib.sh" || exit 1
-use swine
+use strict
+use utils
 use parse-opt
 
 YQ=/usr/local/bin/yq

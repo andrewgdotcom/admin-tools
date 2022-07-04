@@ -5,7 +5,8 @@
 # Exits with code 0 for equality, 1 when $1 > $2 and 2 when $1 < $2
 
 vercomp() { (
-    use swine
+    use strict
+    use utils
 
     if [[ "$1" == "$2" ]]
     then
