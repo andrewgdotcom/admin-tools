@@ -7,8 +7,7 @@ allow-me() { (
     use utils
     use parse-opt
 
-    # shellcheck disable=SC2034
-    PO_SIMPLE_PARAMS="COMMENT"
+    parse-opt.params "COMMENT"
     eval "$(parse-opt-simple)"
 
     : "${COMMENT:="added by $0"}"
