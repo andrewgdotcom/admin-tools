@@ -1,62 +1,70 @@
 #!/bin/bash
-
+#
 # A QAD script to enable new zerotier hosts via the zerotier API
-# $1 is the ansible host or group name
+# $1 is a (comma-separated list of) FQDN(s) or an ansible group name
 # $2 is the ztsetup config file that was used on each host
 
-set -eo pipefail
-err_report() {
-    echo "errexit on line $(caller)" >&2
-}
-trap err_report ERR
-
-die() {
-    echo $2 >&2
-    exit $1
-}
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+# shellcheck disable=SC1090,SC1091
+. "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
+use strict
+use utils
 
 CURL_ARGS=-SsfL
-if [[ ! $ZT_TOKEN_FILE ]]; then
+if [[ ! ${ZT_TOKEN_FILE:-} ]]; then
     ZT_TOKEN_FILE=/root/.zerotier-token
 fi
 
-inventory="$1"
+target="$1"
 config="$2"
-REMOTE_USER="$3"
+REMOTE_USER="${3:-}"
 
-[[ -n "$inventory" && -n "$config" ]] || die 99 "Usage: $0 <target> <config> [<remote_user>]"
+[[ -n "$target" && -n "$config" ]] || die 99 "Usage: $0 <target> <config> [<remote_user>]"
 [[ -f "$config" ]] || die 99 "Could not open $config"
 
+# shellcheck disable=SC1090,SC1091
 . "$config"
-[[ $REMOTE_USER ]] || REMOTE_USER="$USER"
+: "${REMOTE_USER:="$USER"}"
+
+[[ ${NETWORKS:-} ]] || die 0 "No networks, nothing to do"
 
 # canonicalise format
-NETWORKS=$(echo "$NETWORKS"|tr ' ,' ': ')
+NETWORKS=$(tr ' ,' ': ' <<<"$NETWORKS")
 
-[[ $NETWORKS ]] || die 0 "No networks, nothing to do"
+# If the target contains FQDNs, coerce it to the form:
+#   "[host_list], -i [host_list],"
+# This lets us pass targets to ansible without adding them to an inventory
+# file in advance.
+if [[ "${target%.*}" != "$target" && "${target% -i *}" == "${target}" ]]; then
+  # $target contains '.' but does not contain ' -i ', so let's mangle it
+  target_a=("${target%,}," "-i" "${target%,},")
+else
+  #shellcheck disable=SC2206
+  target_a=($target)
+fi
 
-ZT_TOKEN=$(sudo cat $ZT_TOKEN_FILE)
+ZT_TOKEN=$(sudo cat "$ZT_TOKEN_FILE")
 
 if ! curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/status \
         | jq .online | grep -q true; then
     die 1 "Zerotier is offline. Aborting!"
 fi
 
-hosts=$(ansible $inventory -m command -u "$REMOTE_USER" -b -a \
+hosts=$(ansible "${target_a[@]}" -m command -u "$REMOTE_USER" -b -a \
     'perl -e "open(IN, q[-|], q[zerotier-cli status]); while(<IN>) { print if(s/^.*200 info ([0-9a-fA-F]+) .*$/RESULT;{{ inventory_hostname }};$1/) }"')
 
 for network in $NETWORKS; do
     network_id=${network%%:*}
     for word in $hosts; do
         host=${word#RESULT;}
-        if [[ $word == $host ]]; then
+        if [[ "$word" == "$host" ]]; then
             continue
         fi
         hostname=${host%;*}
         host_id=${host#*;}
         echo "Authorizing $host_id ($host) on network $network_id" >&2
         curl -XPOST $CURL_ARGS -H "$ZT_TOKEN" \
-            -d '{"name": "'$hostname'", "config": {"authorized": true}}' \
+            -d '{"name": "'"$hostname"'", "config": {"authorized": true}}' \
             "https://my.zerotier.com/api/network/${network_id}/member/${host_id}" \
             | jq . \
             || die 2 "Could not authorize"
