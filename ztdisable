@@ -1,32 +1,39 @@
 #!/bin/bash
-
+#
 # A QAD script to disable zerotier hosts via the zerotier API
-# $1 is the ansible host or group name
+# $1 is a (comma-separated list of) FQDN(s) or an ansible group name
 
-set -eo pipefail
-err_report() {
-    echo "errexit on line $(caller)" >&2
-}
-trap err_report ERR
-
-die() {
-    echo $2 >&2
-    exit $1
-}
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+# shellcheck disable=SC1090,SC1091
+. "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
+use strict
+use utils
 
 CURL_ARGS=-SsfL
-if [[ ! $ZT_TOKEN_FILE ]]; then
+if [[ ! ${ZT_TOKEN_FILE:-} ]]; then
     ZT_TOKEN_FILE=/root/.zerotier-token
 fi
 
-inventory="$1"
-REMOTE_USER="$2"
+[[ "${1:-}" ]] || die 99 "Usage: $0 <target> [<remote_user>]"
 
-[[ -n "$inventory" ]] || die 99 "Usage: $0 <target> [<remote_user>]"
+target="$1"
+REMOTE_USER="${2:-}"
 
-[[ $REMOTE_USER ]] || REMOTE_USER="$USER"
+: "${REMOTE_USER:="$USER"}"
 
-ZT_TOKEN=$(sudo cat $ZT_TOKEN_FILE)
+# If the target contains FQDNs, coerce it to the form:
+#   "[host_list], -i [host_list],"
+# This lets us pass targets to ansible without adding them to an inventory
+# file in advance.
+if [[ "${target%.*}" != "$target" && "${target% -i *}" == "${target}" ]]; then
+  # $target contains '.' but does not contain ' -i ', so let's mangle it
+  target_a=("${target%,}," "-i" "${target%,},")
+else
+  #shellcheck disable=SC2206
+  target_a=($target)
+fi
+
+ZT_TOKEN=$(sudo cat "$ZT_TOKEN_FILE")
 
 if ! curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/status|jq .online | grep -q true; then
     die 1 "Zerotier is offline. Aborting!"
@@ -34,7 +41,7 @@ fi
 
 NETWORKS=$(curl $CURL_ARGS -H "$ZT_TOKEN" https://my.zerotier.com/api/network|jq .|awk '/nwid/ {print $2}'|tr -d '",')
 
-hosts=$(ansible $inventory -m command -u "$REMOTE_USER" -b -a \
+hosts=$(ansible "${target_a[@]}" -m command -u "$REMOTE_USER" -b -a \
     'perl -e "open(IN, q[-|], q[zerotier-cli status]); while(<IN>) { if(s/^.*200 info ([0-9a-fA-F]+) .*$/$1/){print qq[RESULT;{{ inventory_hostname }};$_]} }"')
 
 for network in $NETWORKS; do
@@ -43,7 +50,6 @@ for network in $NETWORKS; do
         if [[ $word == $host ]]; then
             continue
         fi
-        hostname=${host%;*}
         hostid=${host#*;}
         [[ -z $( curl $CURL_ARGS \
             -H "$ZT_TOKEN" \
