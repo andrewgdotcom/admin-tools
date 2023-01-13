@@ -1,6 +1,7 @@
 #!/bin/bash
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+#shellcheck disable=SC1091
 . "${SCRIPT_DIR}/poshlib/poshlib.sh" || exit 1
 use strict
 use utils
@@ -13,8 +14,7 @@ if [[ -d /etc/apt ]]; then
 elif [[ -d /etc/yum ]]; then
 	YUM=true
 else
-	echo "Distribution not supported!"
-	exit -1
+	die 2 "Distribution not supported!"
 fi
 
 # Fix up broken default APT configuration
@@ -63,16 +63,36 @@ if [[ ${APT:-} ]]; then
 
 elif [[ ${YUM:-} ]]; then
 
+    # The rkhunter RPM does not install a yum hook like the DEB does for APT.
+    # Steal the logic from APT.
+    # See also https://www.getpagespeed.com/server-setup/security/sane-use-of-rkhunter-in-centos-7
+    yum install -y yum-plugin-post-transaction-actions
+
+    cat <<EOF >/etc/yum/post-actions/rkhunter.action
+*:any:/var/lib/rkhunter/rkhupd.sh
+EOF
+
+    # This is a verbatim copy of the one from APT
+    cat <<EOF >/var/lib/rkhunter/rkhupd.sh
+#!/bin/sh
+set -e
+
+if ! grep -qsE '^DISABLE_TESTS=.*(hashes.*attributes|attributes.*hashes|properties)' /etc/rkhunter.conf /etc/rkhunter.conf.local || \
+     grep -qsE '^ENABLE_TESTS=.*(hashes|attributes|properties)' /etc/rkhunter.conf /etc/rkhunter.conf.local; then
+         rkhunter --propupd --nolog
+fi
+EOF
+    chmod +x /var/lib/rkhunter/rkhupd.sh
+
     # Allow root user without password (i.e. ssh pubkey)
     # If Mallory has a privileged ssh key, they can trivially escalate using
     # pam_ssh_agent_auth, so denying root login outright has minimal effect.
     keyval-add /etc/rkhunter.conf ALLOW_SSH_ROOT_USER without-password
-
 fi
 
 try rkhunter --update
 if catch error && [[ "$error" != 2 ]]; then
-    die $error "rkhunter failed to download updates"
+    die "$error" "rkhunter failed to download updates"
 fi
 rkhunter --propupd
 rkhunter --cronjob --report-warnings-only || true
