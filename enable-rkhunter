@@ -57,9 +57,15 @@ if [[ ${APT:-} ]]; then
     # Allow root user without password (i.e. ssh pubkey)
     # If Mallory has a privileged ssh key, they can trivially escalate using
     # pam_ssh_agent_auth, so denying root login outright has minimal effect.
-    #
-    # This is the default under APT, so the parameter should be unset
-    keyval-add /etc/rkhunter.conf ALLOW_SSH_ROOT_USER unset
+
+    # Under APT, the compiled-in default is "without-password", BUT:
+    if grep -q "^PermitRootLogin without-password" /etc/ssh/sshd_config; then
+        # Hetzner (redundantly) overrides the default ssh_config with an explicit value
+        keyval-update /etc/rkhunter.conf ALLOW_SSH_ROOT_USER without-password
+    else
+        # Otherwise the default under APT is unset
+        keyval-add /etc/rkhunter.conf ALLOW_SSH_ROOT_USER unset
+    fi
 
 elif [[ ${YUM:-} ]]; then
 
