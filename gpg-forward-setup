@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# A QAD tool to configure GPG agent forwarding for a given connection.
+# It requires one argument, the name of the remote machine.
+
+set -euo pipefail
+
+[[ -n ${1:-} ]] || { echo "Usage: $0 <server>"; exit 1; }
+
+local_sock=$(gpgconf --list-dir agent-extra-socket)
+[[ -n $local_sock ]] || { echo "Could not determine local socket location; aborting."; exit 2; }
+
+remote_sock=$(ssh "$1" gpgconf --list-dir agent-socket | awk '/gpg-agent/ {print $1}')
+[[ -n $remote_sock ]] || { echo "Could not determine remote socket location; aborting."; exit 3; }
+
+cat <<EOF >>~/.ssh/config
+
+# Added by $0
+Host $1
+  RemoteForward $remote_sock $local_sock
+EOF
+
+if grep -q /run/user/ <<< "$remote_sock"; then
+    ssh "$1" "sh -c 'printf \"\n# Added by $0\ngpgconf --create-socketdir\n\" >> .\${SHELL##*/}rc'"
+else
+    echo "WARNING: Please ensure that 'StreamLocalBindUnlink yes' is set in the remote sshd_config" >&2
+fi
