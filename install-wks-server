@@ -204,6 +204,9 @@ cat >> "/etc/apache2/sites-available/$SERVER_NAME.conf" <<EOF
     SSLCertificateKeyFile /etc/letsencrypt/live/$SERVER_NAME/privkey.pem
     SSLCACertificateFile /etc/letsencrypt/live/$SERVER_NAME/chain.pem
 
+    # Allow WKD lookups from JavaScript webapps
+    Header set Access-Control-Allow-Origin "*"
+
     # More specific alias comes first
     Alias "/.well-known/openpgpkey/$DOMAIN" "$WKSHOME/$DOMAIN"
     Alias "/.well-known/openpgpkey" "$WKSHOME/$DOMAIN"
