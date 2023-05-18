@@ -20,7 +20,7 @@ fi
 # Fix up broken default APT configuration
 APT_HIDDEN_DIRS=(/etc/.git /etc/.bzr /etc/.java)
 APT_HIDDEN_FILES=(/etc/.gitignore /etc/.bzrignore /etc/.etckeeper /etc/.updated)
-APT_DEV_FILES=('/dev/shm/pulse-shm-*' '/dev/shm/squid-*' '/dev/shm/PostgeSQL.*')
+APT_DEV_FILES=('/dev/shm/pulse-shm-*' '/dev/shm/squid-*' '/dev/shm/PostgreSQL.*')
 APT_SCRIPT_WHITELIST=(/usr/bin/lwp-request)
 
 if [[ ${APT:-} ]]; then
