@@ -28,6 +28,7 @@ MS_CORE_DIR=$MS_HOME/authentication/core
 
 # Support headless installation
 export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=l
 export MONKEYSPHERE_PROMPT=false
 
 # Set some defaults

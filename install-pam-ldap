@@ -21,6 +21,7 @@ fi
 
 # Support headless installation
 export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=l
 
 # A *space-separated* list of LDAP URIs
 LDAP_SERVERS="ldaps://pdc.example.com"

@@ -23,6 +23,10 @@ die() {
 
 [[ ${1-} ]] || die 1 "You must provide a domain name"
 
+# Support headless installation
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=l
+
 DOMAIN="${1-}"
 LETSENCRYPT_EMAIL="${2-webmaster@$DOMAIN}"
 

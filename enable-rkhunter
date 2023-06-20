@@ -24,6 +24,10 @@ APT_DEV_FILES=('/dev/shm/pulse-shm-*' '/dev/shm/squid-*' '/dev/shm/PostgreSQL.*'
 APT_SCRIPT_WHITELIST=(/usr/bin/lwp-request)
 
 if [[ ${APT:-} ]]; then
+    export DEBIAN_FRONTEND=noninteractive
+    export NEEDRESTART_MODE=l
+    apt-get update
+    apt-get -y install rkhunter
 
     # rkhunter is enabled automatically on centos, but not under APT
     keyval-add /etc/default/rkhunter CRON_DAILY_RUN yes
@@ -72,7 +76,7 @@ elif [[ ${YUM:-} ]]; then
     # The rkhunter RPM does not install a yum hook like the DEB does for APT.
     # Steal the logic from APT.
     # See also https://www.getpagespeed.com/server-setup/security/sane-use-of-rkhunter-in-centos-7
-    yum install -y yum-plugin-post-transaction-actions
+    yum install -y rkhunter yum-plugin-post-transaction-actions
 
     cat <<EOF >/etc/yum/post-actions/rkhunter.action
 *:any:/var/lib/rkhunter/rkhupd.sh
