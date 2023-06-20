@@ -25,7 +25,7 @@ die() {
 
 # Support headless installation
 export DEBIAN_FRONTEND=noninteractive
-export NEEDRESTART_MODE=l
+export NEEDRESTART_SUSPEND=y
 
 DOMAIN="${1-}"
 LETSENCRYPT_EMAIL="${2-webmaster@$DOMAIN}"

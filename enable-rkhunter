@@ -25,7 +25,7 @@ APT_SCRIPT_WHITELIST=(/usr/bin/lwp-request)
 
 if [[ ${APT:-} ]]; then
     export DEBIAN_FRONTEND=noninteractive
-    export NEEDRESTART_MODE=l
+    export NEEDRESTART_SUSPEND=y
     apt-get update
     apt-get -y install rkhunter
 

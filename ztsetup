@@ -44,7 +44,7 @@ NETWORKS=$(echo "$NETWORKS"|tr ' ,' ': ')
 if [[ ${APT:-} ]]; then
   # Support headless installation
   export DEBIAN_FRONTEND=noninteractive
-  export NEEDRESTART_MODE=l
+  export NEEDRESTART_SUSPEND=y
 
   # Attempt to autodetect our distribution. This should work for debian and ubuntu
   # IFF the main distribution is configured sensibly

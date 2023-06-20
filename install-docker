@@ -17,7 +17,7 @@ ZEROTIER_INTERFACES=$(zerotier-cli listnetworks |grep PRIVATE|awk '{print $8}')
 : "${DISABLE_IPTABLES:=true}"
 
 # make sure the installer does not prompt; there's nobody listening
-DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=l apt-get -y install docker.io docker-compose
+DEBIAN_FRONTEND=noninteractive NEEDRESTART_SUSPEND=y apt-get -y install docker.io docker-compose
 
 service docker stop
 
