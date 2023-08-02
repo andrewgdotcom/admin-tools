@@ -183,7 +183,6 @@ else
 fi
 
 if [[ "${APT:-}" == "true" ]]; then
-  if [[ ! -x /usr/bin/borg || ! -x /usr/bin/pip3 ]]; then
 	if [[ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]]; then
 		apt-get update
 	fi
@@ -192,7 +191,6 @@ if [[ "${APT:-}" == "true" ]]; then
     apt-get -y install borgmatic \
         || pip3 install borgmatic \
         || die 11 "Could not install borgmatic; aborting."
-  fi
 elif [[ "${YUM:-}" == "true" ]]; then
 	yum -y --setopt=skip_missing_names_on_install=False install borgbackup python34-pip
     # try installing borgmatic from distro; fall back to pip
