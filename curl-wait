@@ -7,7 +7,6 @@ SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 . "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
 use strict
 use utils
-use parse-opt
 
 CURL_FLAGS=-SsfLk
 
