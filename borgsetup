@@ -66,7 +66,7 @@ fi
 # parse command line options
 parse-opt.flags SHOVE_BORG_REPO IMMEDIATE_BACKUP
 parse-opt.params REMOTE_USER REMOTE_HOST REMOTE_DIRECTORY REMOTE_HOST_KEY LOCAL_DIRECTORY SSH_KEYFILE PASSPHRASE_LENGTH
-eval $(parse-opt-simple)
+eval "$(parse-opt-simple)"
 
 ##########################
 #### Let's go to work ####
