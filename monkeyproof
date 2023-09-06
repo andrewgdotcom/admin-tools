@@ -36,11 +36,6 @@ ID_CERTIFIERS="00CC54C6A0C601691AF4931FFB73E21AF1163937"
 PRESEED_USER_ID="Andrew Gallagher <andrewg@andrewg.com>"
 PRESEED_USER_ACCOUNT="andrewg"
 
-# By default, we put monkeysphere in a loopback filesystem to protect it from out-of-space errors
-# The filesystem size is given in MiB
-MS_USE_FS=true
-MS_FS_SIZE=20
-
 if [[ -f /etc/monkeyproof ]]; then
     # shellcheck disable=SC1091
     . /etc/monkeyproof
@@ -48,20 +43,6 @@ fi
 if [[ -f ~/.monkeyproof ]]; then
     # shellcheck disable=SC1090
     . ~/.monkeyproof
-fi
-
-# Set up loopback fs
-
-if [[ $MS_USE_FS == true && ! -e "${MS_HOME}.img" ]]; then
-  [[ ! -e "${MS_HOME}" ]] || mv "${MS_HOME}" "${MS_HOME}.bak$$"
-  dd if=/dev/zero of="${MS_HOME}.img" bs=1048576 count="${MS_FS_SIZE}"
-  mkfs -t ext4 -j "${MS_HOME}.img"
-  mkdir -p "${MS_HOME}"
-  cat <<EOF >>/etc/fstab
-${MS_HOME}.img    ${MS_HOME}  ext4  loop,errors=remount-ro  0 2
-EOF
-  mount "${MS_HOME}"
-  [[ ! -e "${MS_HOME}.bak$$" ]] || mv "${MS_HOME}.bak$$"/* "${MS_HOME}"/
 fi
 
 # Install and configure monkeysphere
