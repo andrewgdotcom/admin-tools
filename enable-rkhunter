@@ -21,7 +21,7 @@ fi
 APT_HIDDEN_DIRS=(/etc/.git /etc/.bzr /etc/.java)
 APT_HIDDEN_FILES=(/etc/.gitignore /etc/.bzrignore /etc/.etckeeper /etc/.updated)
 APT_DEV_FILES=('/dev/shm/pulse-shm-*' '/dev/shm/squid-*' '/dev/shm/PostgreSQL.*')
-APT_SCRIPT_WHITELIST=(/usr/bin/lwp-request)
+APT_SCRIPT_WHITELIST=(/usr/bin/lwp-request /usr/bin/which.debianutils)
 
 if [[ ${APT:-} ]]; then
     export DEBIAN_FRONTEND=noninteractive
@@ -29,10 +29,11 @@ if [[ ${APT:-} ]]; then
     apt-get update
     apt-get -y install rkhunter
 
-    # rkhunter is enabled automatically on centos, but not under APT
-    keyval-add /etc/default/rkhunter CRON_DAILY_RUN yes
-    keyval-add /etc/default/rkhunter CRON_DB_UPDATE yes
-    keyval-add /etc/default/rkhunter APT_AUTOGEN yes
+    # rkhunter is enabled automatically on centos, but not in focal
+    # Force quotes to match jammy's default
+    keyval-add /etc/default/rkhunter CRON_DAILY_RUN '"yes"'
+    keyval-add /etc/default/rkhunter CRON_DB_UPDATE '"yes"'
+    keyval-add /etc/default/rkhunter APT_AUTOGEN '"yes"'
 
     # rkhunter's default APT configuration is bad
     keyval-add /etc/rkhunter.conf UPDATE_MIRRORS 1
