@@ -44,6 +44,6 @@ vercomp() { (
 
 vercomp.eq() { vercomp "$@" ; }
 vercomp.gt() { __vercomp_err=0; vercomp "$@" || __vercomp_err=$?; [[ $__vercomp_err == $__vercomp_gt ]]; }
-vercomp.ge() { __vercomp_err=0; vercomp "$@" || __vercomp_err=$?; [[ $__vercomp_err != $__vercomp_le ]]; }
+vercomp.ge() { __vercomp_err=0; vercomp "$@" || __vercomp_err=$?; [[ $__vercomp_err != $__vercomp_lt ]]; }
 vercomp.lt() { __vercomp_err=0; vercomp "$@" || __vercomp_err=$?; [[ $__vercomp_err == $__vercomp_lt ]]; }
 vercomp.le() { __vercomp_err=0; vercomp "$@" || __vercomp_err=$?; [[ $__vercomp_err != $__vercomp_gt ]]; }
