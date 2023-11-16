@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# A toolkit to fix a broken linux boot
+# This is the inner script, which SHOULD NOT NOT be called directly
+
+SCRIPT_DIR=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+# shellcheck disable=SC1090,SC1091
+. "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
+use strict
+use utils
+
+mount -a
+dpkg --configure -a
+update-initrd -u -k all
+update-grub
