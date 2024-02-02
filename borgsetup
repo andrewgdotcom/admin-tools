@@ -194,9 +194,9 @@ if [[ "${APT:-}" == "true" ]]; then
         || die 11 "Could not install borgmatic; aborting."
 elif [[ "${YUM:-}" == "true" ]]; then
 	yum -y --setopt=skip_missing_names_on_install=False install borgbackup python34-pip
-    # try installing borgmatic from distro; fall back to pip
-    yum -y --setopt=skip_missing_names_on_install=False install borgmatic \
-        || pip3 install borgmatic \
+    # do not install borgmatic from distro; always use pip
+    yum -y --setopt=skip_missing_names_on_install=False remove borgmatic || true
+    pip3 install borgmatic \
         || die 11 "Could not install borgmatic; aborting."
 fi
 
@@ -410,7 +410,7 @@ fi
 
 if [[ "${RECOVERY:-}" == "true" ]]; then
     echo "Testing the repository..."
-    borgmatic list > >( /usr/local/bin/borg-silencer.pl 2>&1 ) 2>&1
+    "$BORGMATIC" list > >( /usr/local/bin/borg-silencer.pl 2>&1 ) 2>&1
 else
     # We need to su properly to root, otherwise borg makes a mess in our homedir
     # But don't use "su -", because we want to keep our other environment.
