@@ -410,7 +410,7 @@ fi
 
 if [[ "${RECOVERY:-}" == "true" ]]; then
     echo "Testing the repository..."
-    borg list :: > >( /usr/local/bin/borg-silencer.pl 2>&1 ) 2>&1
+    borgmatic list > >( /usr/local/bin/borg-silencer.pl 2>&1 ) 2>&1
 else
     # We need to su properly to root, otherwise borg makes a mess in our homedir
     # But don't use "su -", because we want to keep our other environment.
