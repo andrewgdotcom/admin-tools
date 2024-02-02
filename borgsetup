@@ -27,6 +27,7 @@ SSH_KEYFILE=/root/.ssh/id_rsa_borgmatic
 REMOTE_USER=user
 REMOTE_HOST=host.example.net
 REMOTE_DIRECTORY=borg
+REMOTE_BORG_PATH=borg
 # Supplying a known_hosts keyline prevents us being asked for confirmation
 # when connecting to the remote host for the first time, which can cause
 # ansible to hang.
@@ -65,7 +66,7 @@ fi
 
 # parse command line options
 parse-opt.flags SHOVE_BORG_REPO IMMEDIATE_BACKUP
-parse-opt.params REMOTE_USER REMOTE_HOST REMOTE_DIRECTORY REMOTE_HOST_KEY LOCAL_DIRECTORY SSH_KEYFILE PASSPHRASE_LENGTH
+parse-opt.params REMOTE_USER REMOTE_HOST REMOTE_DIRECTORY REMOTE_HOST_KEY REMOTE_BORG_PATH LOCAL_DIRECTORY SSH_KEYFILE PASSPHRASE_LENGTH
 eval "$(parse-opt-simple)"
 
 ##########################
@@ -74,7 +75,7 @@ eval "$(parse-opt-simple)"
 
 if [[ ! "$(sudo bash -c 'echo $SSH_AUTH_SOCK')" ]]; then
 	echo "sudo is not passing through \$SSH_AUTH_SOCK. This script will not work until you fix it."
-	echo "Try setting \'Defaults env_keep += \"SSH_AUTH_SOCK\"\' under /etc/sudoers.d"
+	echo "Try setting 'Defaults env_keep += \"SSH_AUTH_SOCK\"' under /etc/sudoers.d"
 	echo "Or did you forget to run monkeyproof?"
 	exit 3
 fi
@@ -93,7 +94,7 @@ if [[ "${LOCAL_DIRECTORY:-}" ]]; then
 	fi
 	REPO_LOCATION="$LOCAL_DIRECTORY"
 elif [[ "${REMOTE_HOST:-}" ]]; then
-	REPO_LOCATION="${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIRECTORY}"
+	REPO_LOCATION="ssh://${REMOTE_USER}@${REMOTE_HOST}/./${REMOTE_DIRECTORY}"
 else
 	die 7 "Need to configure either a remote or local repo"
 fi
@@ -293,6 +294,9 @@ cat >> /etc/borgmatic/config.yaml <<EOF
     # Stay in same file system (do not cross mount points).
     one_file_system: true
 
+    # Alternate Borg remote executable. Defaults to "borg".
+    remote_path: $REMOTE_BORG_PATH
+
     # Paths to local or remote repositories (required). Tildes are expanded. Multiple
     # repositories are backed up to in sequence. See ssh_command for SSH options like
     # identity file or port.
@@ -320,6 +324,9 @@ storage:
     # punctuation, so it parses correctly. And backslash any quote or backslash
     # literals as well.
     encryption_passphrase: $BORG_PASSPHRASE
+
+    # Be tolerant of changes to the remote location.
+    relocated_repo_access_is_ok: true
 
 # At least one of the "keep" options is required for pruning to work.
 retention:
