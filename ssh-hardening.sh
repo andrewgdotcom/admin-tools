@@ -78,4 +78,8 @@ EOF
     fi
 
 EOF
+else
+
+    service sshd restart
+
 fi
