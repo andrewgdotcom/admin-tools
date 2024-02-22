@@ -57,6 +57,9 @@ mv /etc/ssh/moduli.safe /etc/ssh/moduli
 
 # Delete [EC]DSA host keys
 find /etc/ssh -type f -name 'ssh_host_*dsa_key*' -exec rm {} +
+grep -Rl HostCertificate /etc/ssh | while read -r file; do
+    sed -i -e '/ssh_host_.*dsa_key/d' "$file"
+done
 
 # Regenerate RSA host key IFF it is less than 3072 bits
 if (( $( awk '{print $2}' /etc/ssh/ssh_host_rsa_key.pub | wc -c ) < 540 )); then
