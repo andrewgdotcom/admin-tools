@@ -3,7 +3,7 @@
 # QAD script to harden a default openssh server installation on APT systems.
 # Based on the hardening guides at https://www.sshaudit.com/hardening_guides.html
 
-if [[ $(dpkg -l openssh-server | awk '/^ii/ {print $3}') -lt "1:8.9" ]]; then
+if [[ "$(dpkg -l openssh-server | awk '/^ii/ {print $3}')" < "1:8.9" ]]; then
 
     # Filter out weak ciphers (22.04/bookworm)
     cat <<EOF > /etc/ssh/sshd_config.d/ssh-audit_hardening.conf
