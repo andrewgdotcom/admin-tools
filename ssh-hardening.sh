@@ -67,19 +67,16 @@ if (( $( awk '{print $2}' /etc/ssh/ssh_host_rsa_key.pub | wc -c ) < 540 )); then
         mv /etc/ssh/ssh_host_rsa_key-cert.pub{,.bak}
         cat <<EOF >/dev/fd/2
 
-========================================================================
-WARNING: your RSA host key has been regenerated.
-You will need to re-sign your certificate and restart your sshd service.
-========================================================================
+=================================================================
+WARNING: your RSA host key has been regenerated. You will need to
+re-sign your certificate and restart your sshd service by hand.
+=================================================================
 
 EOF
-    else
-        service sshd restart
+        exit 0
     fi
 
 EOF
-else
-
-    service sshd restart
-
 fi
+
+service sshd restart
