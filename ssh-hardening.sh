@@ -56,7 +56,7 @@ awk '$5 >= 3071' /etc/ssh/moduli > /etc/ssh/moduli.safe
 mv /etc/ssh/moduli.safe /etc/ssh/moduli
 
 # Delete [EC]DSA host keys
-rm /etc/ssh/ssh_host_*dsa_key*
+find /etc/ssh -type f -name 'ssh_host_*dsa_key*' -exec rm {} +
 
 # Regenerate RSA host key IFF it is less than 3072 bits
 if (( $( awk '{print $2}' /etc/ssh/ssh_host_rsa_key.pub | wc -c ) < 540 )); then
