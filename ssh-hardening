@@ -3,6 +3,22 @@
 # QAD script to harden a default openssh server installation on APT systems.
 # Based on the hardening guides at https://www.sshaudit.com/hardening_guides.html
 
+# It takes one option, `--no-regenerate`
+# This prevents weak RSA keys from being automatically regenerated,
+# to prevent unintentional invalidation of SSH_CA certifications.
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+# shellcheck disable=SC1091
+. "${SCRIPT_DIR}/../poshlib/poshlib.sh" || exit 1
+use strict
+use utils
+use parse-opt
+
+# parse command line options
+parse-opt.prefix "HARDENING_"
+parse-opt.flags "REGENERATE"
+eval "$(parse-opt-simple)"
+
 if [[ "$(dpkg -l openssh-server | awk '/^ii/ {print $3}')" < "1:8.9" ]]; then
 
     # Filter out weak ciphers (22.04/bookworm)
@@ -63,12 +79,22 @@ done
 
 # Regenerate RSA host key IFF it is less than 3072 bits
 if (( $( awk '{print $2}' /etc/ssh/ssh_host_rsa_key.pub | wc -c ) < 540 )); then
-    mv /etc/ssh/ssh_host_rsa_key{,.bak}
-    mv /etc/ssh/ssh_host_rsa_key.pub{,.bak}
-    ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N ""
-    if [[ -e /etc/ssh/ssh_host_rsa_key-cert.pub ]]; then
-        mv /etc/ssh/ssh_host_rsa_key-cert.pub{,.bak}
+    if [[ "${HARDENING_REGENERATE:-}" == "false" ]]; then
         cat <<EOF >/dev/fd/2
+
+===================================================================
+WARNING: your RSA host key is <3072 bits and should be regenerated.
+Please run this script again without supplying '--no-regenerate'.
+===================================================================
+
+EOF
+    else
+        mv /etc/ssh/ssh_host_rsa_key{,.bak}
+        mv /etc/ssh/ssh_host_rsa_key.pub{,.bak}
+        ssh-keygen -t rsa -b 4096 -f /etc/ssh/ssh_host_rsa_key -N ""
+        if [[ -e /etc/ssh/ssh_host_rsa_key-cert.pub ]]; then
+            mv /etc/ssh/ssh_host_rsa_key-cert.pub{,.bak}
+            cat <<EOF >/dev/fd/2
 
 =================================================================
 WARNING: your RSA host key has been regenerated. You will need to
@@ -76,7 +102,8 @@ re-sign your certificate and restart your sshd service by hand.
 =================================================================
 
 EOF
-        exit 0
+            exit 0
+        fi
     fi
 
 EOF
