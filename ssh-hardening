@@ -3,9 +3,12 @@
 # QAD script to harden a default openssh server installation on APT systems.
 # Based on the hardening guides at https://www.sshaudit.com/hardening_guides.html
 
-# It takes one option, `--no-regenerate`
-# This prevents weak RSA keys from being automatically regenerated,
-# to prevent unintentional invalidation of SSH_CA certifications.
+# It takes two options: 
+#
+# --no-regenerate   Do not regenerate weak RSA keys. This prevents accidental
+#                   invalidation of SSH_CA certifications.
+#
+# --no-client       Do not harden openssh-client, only openssh-server.
 
 SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 # shellcheck disable=SC1091
@@ -18,7 +21,7 @@ use vercomp
 
 # parse command line options
 parse-opt.prefix "HARDENING_"
-parse-opt.flags "REGENERATE"
+parse-opt.flags "REGENERATE" "CLIENT"
 eval "$(parse-opt-simple)"
 
 openssh_server_ver=$(dpkg -l openssh-server | awk '/^ii/ {print $3}')
@@ -40,7 +43,7 @@ HostbasedAcceptedAlgorithms     sk-ssh-ed25519-cert-v01@openssh.com,ssh-ed25519-
 PubkeyAcceptedAlgorithms        sk-ssh-ed25519-cert-v01@openssh.com,ssh-ed25519-cert-v01@openssh.com,sk-ssh-ed25519@openssh.com,ssh-ed25519,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-256
 EOF
 
-    cat <<EOF > /etc/ssh/ssh_config.d/ssh-audit_hardening.conf
+    [[ "${HARDENING_CLIENT:-}" == false ]] || cat <<EOF > /etc/ssh/ssh_config.d/ssh-audit_hardening.conf
 Host *
     KexAlgorithms       sntrup761x25519-sha512@openssh.com,gss-curve25519-sha256-,curve25519-sha256,curve25519-sha256@libssh.org,gss-group16-sha512-,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha256
     Ciphers             chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
@@ -63,7 +66,7 @@ MACs                    hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.
 HostKeyAlgorithms       ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,sk-ssh-ed25519@openssh.com,sk-ssh-ed25519-cert-v01@openssh.com,rsa-sha2-256,rsa-sha2-512,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-512-cert-v01@openssh.com
 EOF
 
-    cat <<EOF > /etc/ssh/ssh_config.d/ssh-audit_hardening.conf
+    [[ "${HARDENING_CLIENT:-}" == false ]] || cat <<EOF > /etc/ssh/ssh_config.d/ssh-audit_hardening.conf
 Host *
     KexAlgorithms       curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha256
     Ciphers             chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
