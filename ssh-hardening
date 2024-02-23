@@ -105,8 +105,6 @@ EOF
             exit 0
         fi
     fi
-
-EOF
 fi
 
 service sshd restart
