@@ -13,13 +13,19 @@ SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
 use strict
 use utils
 use parse-opt
+use-from .
+use vercomp
 
 # parse command line options
 parse-opt.prefix "HARDENING_"
 parse-opt.flags "REGENERATE"
 eval "$(parse-opt-simple)"
 
-if [[ "$(dpkg -l openssh-server | awk '/^ii/ {print $3}')" < "1:8.9" ]]; then
+openssh_server_ver=$(dpkg -l openssh-server | awk '/^ii/ {print $3}')
+openssh_server_ver=${openssh_server_ver%%p*}
+openssh_server_ver=${openssh_server_ver#*:}
+
+if vercomp "$openssh_server_ver" "8.9" || (( $? == 1 )); then
 
     # Filter out weak ciphers (22.04/bookworm)
     cat <<EOF > /etc/ssh/sshd_config.d/ssh-audit_hardening.conf
