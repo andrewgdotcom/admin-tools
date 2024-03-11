@@ -34,7 +34,7 @@ REMOTE_BORG_PATH=borg
 #REMOTE_HOST_KEY="host.example.net,10.0.0.1 ssh-ed25519 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 # List of directories to back up
-BACKUP_SOURCES=( /home /etc /var /srv /usr/local /data /opt )
+BACKUP_SOURCES=( /data /etc /home /opt /root /srv /usr/local /var )
 
 # Where to search for borgmatic
 BORGMATIC=/usr/bin/borgmatic
@@ -283,11 +283,12 @@ location:
     source_directories:
 EOF
 
-# Only try to backup directories if they exist
+# Force backup sources to exist; this works around a limitation in borgbackup
 for dir in "${BACKUP_SOURCES[@]}"; do
-    if [[ -d "$dir" ]]; then
-        echo "        - $dir" >> /etc/borgmatic/config.yaml
-    fi
+    [[ -d "$dir" ]] || mkdir -p "$dir"
+    cat <<EOF  >> /etc/borgmatic/config.yaml
+        - $dir
+EOF
 done
 
 cat >> /etc/borgmatic/config.yaml <<EOF
