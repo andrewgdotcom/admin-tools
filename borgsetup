@@ -135,7 +135,7 @@ if [[ "${REMOTE_HOST:-}" ]]; then
     fi
 
     # Make sure the remote host is usable and the parent directory exists
-    if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" -- mkdir -p "${REPO_LOCATION}"; then
+    if ! ssh "${REMOTE_USER}@${REMOTE_HOST}" -- mkdir -p "${REMOTE_DIRECTORY}"; then
         die 8 "Can't run necessary commands on remote host, aborting"
     fi
 
@@ -149,6 +149,12 @@ if [[ "${REMOTE_HOST:-}" ]]; then
             RECOVERY=true
         fi
     fi
+
+    # `borg init` DOES NOT WORK unless we pass an absolute remote path.
+    # But we don't put an absolute path in our config, because it's brittle.
+    # Determine the remote homedir and use it ONLY in `borg init` below.
+    REMOTE_HOME_DIRECTORY=$(ssh "${REMOTE_USER}@${REMOTE_HOST}" pwd)
+    BORG_INIT_REPO="ssh://${REMOTE_USER}@${REMOTE_HOST}${REMOTE_HOME_DIRECTORY}/${REMOTE_DIRECTORY}${HOSTNAME}"
 
 else
 
@@ -415,7 +421,8 @@ if [[ "${RECOVERY:-}" == "true" ]]; then
 else
     # We need to su properly to root, otherwise borg makes a mess in our homedir
     # But don't use "su -", because we want to keep our other environment.
-    su -c "borg init -e keyfile ${BORG_REPO}" || die 14 "Could not initialise repository"
+    # Remember also to use the absolute repo path (see above).
+    su -c "borg init -e keyfile ${BORG_INIT_REPO}" || die 14 "Could not initialise repository"
 
     BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
 
