@@ -126,6 +126,9 @@ esac
 
 export BORG_REPO="${REPO_LOCATION}${HOSTNAME}"
 
+# very unfortunate naming convention mismatch
+export BORG_REMOTE_PATH=$REMOTE_BORG_PATH
+
 if [[ "${REMOTE_HOST:-}" ]]; then
 
     if [[ "${REMOTE_HOST_KEY:-}" ]]; then
@@ -149,12 +152,6 @@ if [[ "${REMOTE_HOST:-}" ]]; then
             RECOVERY=true
         fi
     fi
-
-    # `borg init` DOES NOT WORK unless we pass an absolute remote path.
-    # But we don't put an absolute path in our config, because it's brittle.
-    # Determine the remote homedir and use it ONLY in `borg init` below.
-    REMOTE_HOME_DIRECTORY=$(ssh "${REMOTE_USER}@${REMOTE_HOST}" pwd)
-    BORG_INIT_REPO="ssh://${REMOTE_USER}@${REMOTE_HOST}${REMOTE_HOME_DIRECTORY}/${REMOTE_DIRECTORY}${HOSTNAME}"
 
 else
 
@@ -421,8 +418,7 @@ if [[ "${RECOVERY:-}" == "true" ]]; then
 else
     # We need to su properly to root, otherwise borg makes a mess in our homedir
     # But don't use "su -", because we want to keep our other environment.
-    # Remember also to use the absolute repo path (see above).
-    su -c "borg init -e keyfile ${BORG_INIT_REPO}" || die 14 "Could not initialise repository"
+    su -c "borg init -e keyfile ${BORG_REPO}" || die 14 "Could not initialise repository"
 
     BORG_KEYFILE=/root/.config/borg/keys/$(ls -tr /root/.config/borg/keys | tail -1)
 
@@ -435,6 +431,7 @@ fi
 cat >> /usr/local/bin/borg-env <<EOF
 export BORG_REPO=\$($YQ -r .location.repositories[0] </etc/borgmatic/config.yaml)
 export BORG_PASSPHRASE=\$($YQ -r .storage.encryption_passphrase </etc/borgmatic/config.yaml)
+export BORG_REMOTE_PATH=\$($YQ -r .remote_path </etc/borgmatic/config.yaml)
 EOF
 
 # Dump our info to stdout where e.g. ansible can pick it up
