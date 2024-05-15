@@ -130,8 +130,7 @@ cat > /etc/monkeysphere/monkeysphere.conf <<EOF
 # increasing order of verbosity.
 #LOG_LEVEL=INFO
 
-# GPG keyserver to search for keys.
-# Use Hagrid.
+# PGP keyserver to search for keys.
 KEYSERVER=keys.openpgp.org
 
 # The path to the SSH known_hosts file.
@@ -157,8 +156,7 @@ AUTHORIZED_USER_IDS="/etc/monkeysphere/authorized_user_ids/%u"
 # Use the standard-ish pam_ssh_agent_auth directory for this. #POLS
 RAW_AUTHORIZED_KEYS='/etc/security/authorized_keys/%u'
 
-# GPG keyserver to search for keys.
-# Use Hagrid.
+# PGP keyserver to search for keys.
 KEYSERVER=keys.openpgp.org
 EOF
 
@@ -170,8 +168,7 @@ cat > /etc/monkeysphere/monkeysphere-host.conf <<EOF
 # increasing order of verbosity.
 #LOG_LEVEL=INFO
 
-# GPG keyserver to search for keys.
-# Use Hagrid.
+# PGP keyserver to search for keys.
 KEYSERVER=keys.openpgp.org
 EOF
 
@@ -270,6 +267,22 @@ EOF
   ssh_restart=true
 fi
 
+# Disable password authentication by default
+if grep -Eq '^\s*PasswordAuthentication\s+no' "$SSHD_CONFIG"; then
+	# If we find our own handiwork, do nothing; this is for idempotency
+  echo "PasswordAuthentication already disabled"
+else
+  if grep -Eq '^\s*PasswordAuthentication\s' "$SSHD_CONFIG"; then
+    # If there is a working PasswordAuthentication line, comment it out
+    perl -pi.bak3 -e 's/^(\s*PasswordAuthentication\s.*)$/#$1/' "$SSHD_CONFIG"
+  fi
+  cat >> "$SSHD_MS_CONFIG" <<EOF
+# Added automatically by monkeyproof script
+PasswordAuthentication no
+EOF
+  ssh_restart=true
+fi
+
 if [[ ${ssh_restart:-} ]]; then
     service "$SSH" restart
 fi
@@ -289,22 +302,7 @@ fi
 
 if [[ $APT ]]; then
 
-  if apt-get -y install libpam-ssh-agent-auth; then
-	echo "Installed libpam-ssh-agent-auth from distribution"
-  else
-	cat > /etc/apt/sources.list.d/andrewg.list <<EOF
-deb http://andrewg.com/debian andrewg main
-EOF
-	apt-key --keyring /etc/apt/trusted.gpg.d/andrewg-codesign.gpg adv \
-		--keyserver pool.sks-keyservers.net --recv-key DC517DF489A99F534BBB07BC88E7A27092F9ACDC
-	apt-get update
-	if apt-get -y install pam-ssh-agent-auth; then
-		echo "Installed pam-ssh-agent-auth from andrewg.com"
-	else
-		die 3 "FATAL: Could not install (lib)pam-ssh-agent-auth"
-	fi
-  fi
-
+  apt-get -y install libpam-ssh-agent-auth
   cat > /usr/share/pam-configs/pam-ssh-agent-auth <<EOF
 Name: SSH agent authentication
 Default: yes
