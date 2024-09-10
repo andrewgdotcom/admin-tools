@@ -116,4 +116,4 @@ EOF
     fi
 fi
 
-service sshd restart
+service ssh restart
