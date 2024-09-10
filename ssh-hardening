@@ -82,7 +82,7 @@ mv /etc/ssh/moduli.safe /etc/ssh/moduli
 
 # Delete [EC]DSA host keys
 find /etc/ssh -type f -name 'ssh_host_*dsa_key*' -exec rm {} +
-grep -Rl HostCertificate /etc/ssh | while read -r file; do
+{ grep -Rl HostCertificate /etc/ssh || true } | while read -r file; do
     sed -i -e '/ssh_host_.*dsa_key/d' "$file"
 done
 
