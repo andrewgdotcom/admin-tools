@@ -131,7 +131,7 @@ cat > /etc/monkeysphere/monkeysphere.conf <<EOF
 #LOG_LEVEL=INFO
 
 # PGP keyserver to search for keys.
-KEYSERVER=keys.openpgp.org
+KEYSERVER=hkps://keys.openpgp.org
 
 # The path to the SSH known_hosts file.
 #KNOWN_HOSTS=~/.ssh/known_hosts
@@ -157,7 +157,7 @@ AUTHORIZED_USER_IDS="/etc/monkeysphere/authorized_user_ids/%u"
 RAW_AUTHORIZED_KEYS='/etc/security/authorized_keys/%u'
 
 # PGP keyserver to search for keys.
-KEYSERVER=keys.openpgp.org
+KEYSERVER=hkps://keys.openpgp.org
 EOF
 
 cat > /etc/monkeysphere/monkeysphere-host.conf <<EOF
@@ -169,7 +169,7 @@ cat > /etc/monkeysphere/monkeysphere-host.conf <<EOF
 #LOG_LEVEL=INFO
 
 # PGP keyserver to search for keys.
-KEYSERVER=keys.openpgp.org
+KEYSERVER=hkps://keys.openpgp.org
 EOF
 
 # Allow for possibility of soft-linked or prepopulated authorized_keys
