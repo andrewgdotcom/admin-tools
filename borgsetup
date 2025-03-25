@@ -6,7 +6,7 @@ use strict
 use utils
 use parse-opt
 
-YQ=/usr/local/bin/yq
+YQ=$(which yq || echo "/usr/local/bin/yq")
 
 # Number of alphanumeric chars in encryption passphrase.
 # 24 should be good enough
@@ -204,7 +204,7 @@ elif [[ "${YUM:-}" == "true" ]]; then
 fi
 
 if ! $YQ . </dev/null 2>/dev/null; then
-    pip3 install yq || die 12 "Could not install yq; aborting."
+    apt-get -y install yq || pip3 install yq || die 12 "Could not install yq; aborting."
 fi
 
 if [[ ! -x "$BORGMATIC" ]]; then

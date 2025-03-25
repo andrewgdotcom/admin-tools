@@ -2,7 +2,7 @@
 # Tool for extracting information from an elasticsearch-style yaml file.
 # Requires @kislyuk's yq (the one from python-pip, not the other one)
 
-_KISLYUK_YQ=/usr/local/bin/yq
+_KISLYUK_YQ=$(which yq || echo "/usr/local/bin/yq")
 if [[ ! -x $_KISLYUK_YQ ]] || ! $_KISLYUK_YQ --help | grep -q kislyuk/yq; then
     echo "yaml-elastic requires https://github.com/kislyuk/yq under /usr/local/bin" >&2
     echo "This can be installed using python3-pip" >&2

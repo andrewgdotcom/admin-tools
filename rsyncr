@@ -11,7 +11,7 @@ err_report() {
 trap err_report ERR
 
 CONFIG=/etc/rsyncr.conf
-YQ=/usr/local/bin/yq
+YQ=$(which yq || echo "/usr/local/bin/yq")
 
 if [[ ! -f /etc/rsyncr.conf ]]; then
     echo "No configuration"
