@@ -48,11 +48,8 @@ if [[ ${APT:-} ]]; then
 
   # Attempt to autodetect our distribution. This should work for debian and ubuntu
   # IFF the main distribution is configured sensibly
-  : "${DIST:=$(awk '/^deb.*main/ {print $3}' /etc/apt/sources.list | grep -v '-' | head -1)}"
+  : "${DIST:=$(awk -F= '/^VERSION_CODENAME/ {print $2}' /etc/os-release | head -1)}"
 
-  if [[ $DIST == "focal" ]]; then ## there is no repo for ubuntu 20.04 atm, 18.04 works just fine
-    DIST="bionic"
-  fi
   if zerotier-cli info 2>/dev/null; then
 	echo "Already installed"
   else
