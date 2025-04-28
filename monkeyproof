@@ -48,7 +48,21 @@ fi
 # Install and configure monkeysphere
 
 if [[ $APT ]]; then
-  if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
+  if [ -f /etc/apt/sources.list.d/debian-sources ]; then
+    # bookworm no longer ships monkeysphere, add bullseye sources
+    cat <<EOF > /etc/apt/sources.list.d/debian-bullseye.sources
+Types: deb deb-src
+URIs: mirror+file:///etc/apt/mirrors/debian.list
+Suites: bullseye bullseye-updates bullseye-backports
+Components: main
+
+Types: deb deb-src
+URIs: mirror+file:///etc/apt/mirrors/debian-security.list
+Suites: bullseye-security
+Components: main
+EOF
+    apt-get update
+  elif [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -60)" ]; then
     apt-get update
   fi
   apt-get -y install monkeysphere dirmngr
