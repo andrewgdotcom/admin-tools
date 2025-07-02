@@ -29,7 +29,7 @@ fi
 master=$($YQ -r ".master" < $CONFIG)
 [[ $master && "$master" == $(hostname --fqdn) ]] || exit 0
 
-nodes=($($YQ -r ".nodes,.slaves|.[]" < $CONFIG))
+nodes=($($YQ -r ".nodes + .slaves|.[]" < $CONFIG))
 includes=($($YQ -r ".includes|.[]" < $CONFIG))
 excludes=($($YQ -r ".excludes|.[]?" < $CONFIG))
 options=$($YQ -r ".options|.[]?" < $CONFIG)
