@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# A cron job to synchronise filesystems between multiple slaves.
+# A cron job to synchronise filesystems between multiple nodes.
 # Soft link this script under /etc/cron.{daily,hourly,weekly} as appropriate.
 
 set -eo pipefail
@@ -29,7 +29,7 @@ fi
 master=$($YQ -r ".master" < $CONFIG)
 [[ $master && "$master" == $(hostname --fqdn) ]] || exit 0
 
-slaves=($($YQ -r ".all,.slaves|.[]" < $CONFIG))
+nodes=($($YQ -r ".nodes,.slaves|.[]" < $CONFIG))
 includes=($($YQ -r ".includes|.[]" < $CONFIG))
 excludes=($($YQ -r ".excludes|.[]?" < $CONFIG))
 options=$($YQ -r ".options|.[]?" < $CONFIG)
@@ -79,9 +79,9 @@ include_list=("${include_list[@]}" "$CONFIG" "$sshkey" "$sshkey.pub")
 # fire in the hole
 
 cd /
-for slave in "${slaves[@]}"; do
-    [[ $slave && $slave != $master ]] || continue
+for node in "${nodes[@]}"; do
+    [[ $node && $node != $master ]] || continue
     rsync -a --relative -e "ssh -i $sshkey" "${option_flags[@]}" \
         "${exclude_flags[@]}" "${include_list[@]}" \
-        ${slave}:/ 2>&1 | logger -t rsyncr
+        ${node}:/ 2>&1 | logger -t rsyncr
 done
