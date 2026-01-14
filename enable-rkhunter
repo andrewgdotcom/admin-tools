@@ -101,6 +101,11 @@ EOF
     keyval-add /etc/rkhunter.conf ALLOW_SSH_ROOT_USER without-password
 fi
 
+if [[ -x /usr/sbin/zabbix_agentd ]]; then
+    # zabbix-agent uses large shared memory segments
+    keyval-add /etc/rkhunter.conf --multi ALLOWIPCPROC /usr/sbin/zabbix_agentd
+fi
+
 try rkhunter --update
 if catch error && [[ "$error" != 2 ]]; then
     die "$error" "rkhunter failed to download updates"
