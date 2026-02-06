@@ -34,7 +34,7 @@ if [[ $(whoami) != "root" ]]; then
 	# If we are not root, become root. Non-root invocation is useful
 	# because most methods of obtaining root reset the environment.
 	# Duplicate any required envars on the other side of the sudo.
-	exec sudo SSH_CONNECTION="${SSH_CONNECTION}" "$0"
+	exec sudo SSH_CONNECTION="${SSH_CONNECTION}" /bin/bash "$0"
 fi
 
 APT=
