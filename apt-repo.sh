@@ -16,11 +16,11 @@ apt-repo() { (
 
   usage() {
     cat <<EOF
-Usage: $BASENAME add REPO_NAME "REPO_CONFIG" GPGKEY_URL
+Usage: $BASENAME add REPO_NAME "REPO_CONFIG" PGPKEY_URL
        $BASENAME remove REPO_NAME
 
-A utility to safely add an APT repository with a GPG signing key, while
-avoiding the unsafe use of 'curl GPGKEY_URL | apt-key add -'
+A utility to safely add an APT repository with a PGP signing key, while
+avoiding the unsafe use of 'curl PGPKEY_URL | apt-key add -'
 
 REPO_NAME is a unique local identifier for the repo.
 
@@ -28,7 +28,7 @@ REPO_CONFIG is the full description of the repo that should be added to the
 sources.list file, e.g. "deb http://ftp.debian.org/debian stable main".
 Since this will usually contain spaces, it must be enclosed in quotes.
 
-GPGKEY_URL is a URL from which to download the signing key of the repo.
+PGPKEY_URL is a URL from which to download the signing key of the repo.
 
 This tool implements the safe third-party repo method as described in
 https://wiki.debian.org/DebianRepository/UseThirdParty
@@ -42,7 +42,7 @@ EOF
 
   REPO_NAME="$2"
   SOURCES_FILE="$SOURCES_DIR/$REPO_NAME".list
-  GPGKEY_FILE="$SOURCES_DIR/.$REPO_NAME".gpg
+  PGPKEY_FILE="$SOURCES_DIR/.$REPO_NAME".pgp
 
   case "$1" in
 
@@ -54,9 +54,9 @@ EOF
     fi
 
     REPO_CONFIG="$3"
-    GPGKEY_URL="$4"
+    PGPKEY_URL="$4"
 
-    if [[ -f $SOURCES_FILE || -f $GPGKEY_FILE ]]; then
+    if [[ -f $SOURCES_FILE || -f $PGPKEY_FILE ]]; then
       echo "Unable to create files; repo already configured!"
       exit 2
     fi
@@ -80,21 +80,23 @@ EOF
     fi
 
     cat <<EOF >"$SOURCES_FILE"
-# Created by $0 with: $BASENAME add $2 "$3" $4
-# To clean up use: $BASENAME remove $2
-deb [$REPO_OPTIONS signed-by=$GPGKEY_FILE] $REPO_CONFIG
+# Created with: $0 add $2 "$3" $4
+# To clean up use: $0 remove $2
+deb [$REPO_OPTIONS signed-by=$PGPKEY_FILE] $REPO_CONFIG
 EOF
 
     TMPFILE=$(mktemp)
-    curl $CURL_FLAGS -o "$TMPFILE" "$GPGKEY_URL"
-    gpg --no-default-keyring --keyring="$GPGKEY_FILE" --import "$TMPFILE"
-    # This might leave a backup file; clean it up
-    rm "$GPGKEY_FILE~" || true
-    rm "$TMPFILE"
+    curl $CURL_FLAGS -o "$TMPFILE" "$PGPKEY_URL"
+    if grep -q "^-----BEGIN PGP" "$TMPFILE"; then
+      gpg --dearmor < "$TMPFILE" > "$PGPKEY_FILE"
+      rm "$TMPFILE"
+    else
+      mv "$TMPFILE" "$PGPKEY_FILE"
+    fi
 
     # fix permissions
-    chown root:root "$GPGKEY_FILE" "$SOURCES_FILE"
-    chmod 644 "$GPGKEY_FILE" "$SOURCES_FILE"
+    chown root:root "$PGPKEY_FILE" "$SOURCES_FILE"
+    chmod 644 "$PGPKEY_FILE" "$SOURCES_FILE"
 
     ;;
 
@@ -105,12 +107,12 @@ EOF
       exit 1
     fi
 
-    if [[ ! -f $SOURCES_FILE && ! -f $GPGKEY_FILE ]]; then
+    if [[ ! -f $SOURCES_FILE && ! -f $PGPKEY_FILE ]]; then
       echo "Unable to delete files; repo not configured!"
       exit 2
     fi
 
-    rm "$SOURCES_FILE" "$GPGKEY_FILE" || true
+    rm "$SOURCES_FILE" "$PGPKEY_FILE" || true
 
     ;;
 
