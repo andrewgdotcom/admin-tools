@@ -1,0 +1,164 @@
+#!/bin/bash
+# Quick and dirty script to configure pam-ssh-agent-auth
+# It *should* be idempotent...
+#
+# It takes one optional argument, '--force'.
+#
+# Note that if pam-ssh-agent-auth is configured to read the authorized_keys
+# file under the user's HOME, an attacker could escalate by modifying it.
+# We therefore only permit escalation using /etc/security/authorized_keys,
+# but allow both the user and system authorized_keys for login.
+#
+# BEWARE if this script fails, auth may be left in an inconsistent state.
+# Be sure to have a backup plan (e.g. multiple sessions, direct root login).
+
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+# shellcheck disable=SC1090
+. "$SCRIPT_DIR/poshlib/poshlib.sh" || exit 1
+use strict
+use utils
+
+APT=''
+YUM=''
+if [[ -d /etc/apt ]]; then
+	APT=true
+	SUDO=sudo
+	SSH=ssh
+elif [[ -d /etc/yum ]]; then
+	YUM=true
+	SUDO=wheel
+	SSH=sshd
+else
+	die 2 "Distribution not supported!"
+fi
+
+# Support headless installation
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_SUSPEND=y
+
+# Allow for possibility of soft-linked or prepopulated authorized_keys
+if [[ ! -L /etc/security/authorized_keys && ! -e /etc/security/authorized_keys ]]; then
+	mkdir -p /etc/security/authorized_keys
+  cat > /etc/security/authorized_keys/README <<EOF
+# This directory contains authorized keys for use by both ssh and sudo.
+EOF
+fi
+
+# Check for a conflicting monkeysphere configuration
+for i in /etc/ssh/sshd_config.d/99-monkeysphere.conf /etc/cron.hourly/monkeysphere; do
+  if [[ -f "$i" ]]; then
+    if [[ "${1:-}" == "--force" ]]; then
+      rm -f "$i" || die 4 "Could not remove conflicting monkeysphere configuration file $i; aborting."
+    else
+      echo "Conflicting monkeysphere configuration file $i found. Remove it or supply '--force' to overwrite." >>&2
+      fail=true
+    fi
+  fi
+done
+[[ -z "$fail" ]] || die 3 "Aborting"
+
+# Now configure sshd to read managed ssh keys
+
+SSHD_CONFIG=/etc/ssh/sshd_config
+
+if grep -q '^Include /etc/ssh/sshd_config\.d/\*\.conf$' "$SSHD_CONFIG"; then
+    SSHD_MS_CONFIG=/etc/ssh/sshd_config.d/99-ssh-agent-auth.conf
+    if [[ -f "$SSHD_MS_CONFIG" ]]; then
+        mv "$SSHD_MS_CONFIG"{,.bak}
+    fi
+else
+    SSHD_MS_CONFIG=$SSHD_CONFIG
+fi
+
+if grep -Eq '^\s*AuthorizedKeysFile\s+%h/.ssh/authorized_keys\s+/etc/security/authorized_keys/%u\s*$' "$SSHD_CONFIG"; then
+	# If we find our own handiwork, do nothing; this is for idempotency
+	echo "SSHD already configured for managed keys"
+else
+  if grep -Eq '^\s*AuthorizedKeysFile\s+' "$SSHD_CONFIG"; then
+	  # If there exists a working AuthorizedKeysFile line, comment it out
+	  perl -pi.bak -e 's/^(\s*AuthorizedKeysFile)/#$1/' "$SSHD_CONFIG"
+  fi
+  cat >> "$SSHD_MS_CONFIG" <<EOF
+# Added automatically by install-ssh-agent-auth script
+# Allow logins with both user-supplied keys and curated keys
+AuthorizedKeysFile %h/.ssh/authorized_keys /etc/security/authorized_keys/%u
+EOF
+	ssh_restart=true
+fi
+
+# Also fix StreamLocalBindUnlink while we're here
+if grep -Eq '^\s*StreamLocalBindUnlink\s+yes' "$SSHD_CONFIG"; then
+	# If we find our own handiwork, do nothing; this is for idempotency
+  echo "StreamLocalBindUnlink already enabled"
+else
+  if grep -Eq '^\s*StreamLocalBindUnlink\s' "$SSHD_CONFIG"; then
+    # If there is a working StreamLocalBindUnlink line, comment it out
+    perl -pi.bak2 -e 's/^(\s*StreamLocalBindUnlink\s.*)$/#$1/' "$SSHD_CONFIG"
+  fi
+  cat >> "$SSHD_MS_CONFIG" <<EOF
+# Added automatically by install-ssh-agent-auth script
+# Delete forwarded domain sockets once they're no longer required
+StreamLocalBindUnlink yes
+EOF
+  ssh_restart=true
+fi
+
+# Disable password authentication by default
+if grep -Eq '^\s*PasswordAuthentication\s+no' "$SSHD_CONFIG"; then
+	# If we find our own handiwork, do nothing; this is for idempotency
+  echo "PasswordAuthentication already disabled"
+else
+  if grep -Eq '^\s*PasswordAuthentication\s' "$SSHD_CONFIG"; then
+    # If there is a working PasswordAuthentication line, comment it out
+    perl -pi.bak3 -e 's/^(\s*PasswordAuthentication\s.*)$/#$1/' "$SSHD_CONFIG"
+  fi
+  cat >> "$SSHD_MS_CONFIG" <<EOF
+# Added automatically by install-ssh-agent-auth script
+PasswordAuthentication no
+EOF
+  ssh_restart=true
+fi
+
+if [[ ${ssh_restart:-} ]]; then
+    service "$SSH" restart
+fi
+
+# Install and configure libpam-ssh-agent-auth
+
+if [[ $APT ]]; then
+
+  apt-get -y install libpam-ssh-agent-auth
+  cat > /usr/share/pam-configs/pam-ssh-agent-auth <<EOF
+Name: SSH agent authentication
+Default: yes
+Priority: 258
+Auth-Type: Primary
+Auth:
+	[success=end default=ignore]	pam_ssh_agent_auth.so file=/etc/security/authorized_keys/%u
+Auth-Initial:
+	[success=end default=ignore]	pam_ssh_agent_auth.so file=/etc/security/authorized_keys/%u
+EOF
+
+  pam-auth-update --force
+
+elif [[ $YUM ]]; then
+
+  yum -y --setopt=skip_missing_names_on_install=False install pam_ssh_agent_auth
+  if ! grep -q pam_ssh_agent_auth.so /etc/pam.d/system-auth; then
+    cat <<EOF >/etc/pam.d/system-auth-ssh-agent
+auth       sufficient    pam_ssh_agent_auth.so file=/etc/security/authorized_keys/%u
+auth       include       system-auth-ac
+account	   include	     system-auth-ac
+password   include	     system-auth-ac
+session	   include	     system-auth-ac
+EOF
+  ln -sf system-auth-ssh-agent /etc/pam.d/system-auth
+  fi
+
+fi
+
+cat > /etc/sudoers.d/pam-ssh-agent-auth <<EOF
+# Added automatically by install-ssh-agent-auth script
+# Older versions of sudo need this to access user ssh-agent
+Defaults    env_keep += "SSH_AUTH_SOCK"
+EOF
