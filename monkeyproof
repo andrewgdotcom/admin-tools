@@ -49,9 +49,9 @@ fi
 # Install and configure monkeysphere
 
 if [[ $APT ]]; then
-  os_id=$(keyval.read /etc/os-release ID)
-  os_version=$(keyval.read /etc/os-release VERSION_ID)
-  if [[ $os_id == debian && $os_version -gt 11 ]]; then
+  keyval.import /etc/os-release ID
+  keyval.import /etc/os-release VERSION_ID
+  if [[ $ID == debian && $VERSION_ID -gt 11 ]]; then
     # bookworm no longer ships monkeysphere, add bullseye sources
     cat <<EOF > /etc/apt/sources.list.d/debian-bullseye.sources
 Types: deb deb-src
@@ -65,7 +65,7 @@ Suites: bullseye-security
 Components: main
 EOF
     apt-get update
-  elif [[ $os_id == ubuntu && ${os_version%%.*} -gt 22 ]]; then
+  elif [[ $ID == ubuntu && ${VERSION_ID%%.*} -gt 22 ]]; then
     # noble no longer ships monkeysphere, add jammy sources
     cat <<EOF > /etc/apt/sources.list.d/jammy-sources.sources
 Types: deb
