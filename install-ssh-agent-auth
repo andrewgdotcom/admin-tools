@@ -50,12 +50,12 @@ for i in /etc/ssh/sshd_config.d/99-monkeysphere.conf /etc/cron.hourly/monkeysphe
     if [[ "${1:-}" == "--force" ]]; then
       rm -f "$i" || die 4 "Could not remove conflicting monkeysphere configuration file $i; aborting."
     else
-      echo "Conflicting monkeysphere configuration file $i found. Remove it or supply '--force' to overwrite." >>&2
+      echo "Conflicting monkeysphere configuration file $i found. Remove it or supply '--force' to overwrite." >&2
       fail=true
     fi
   fi
 done
-[[ -z "$fail" ]] || die 3 "Aborting"
+[[ -z "${fail:-}" ]] || die 3 "Aborting"
 
 # Now configure sshd to read managed ssh keys
 
