@@ -69,8 +69,11 @@ Zerotier handy tools
 User-authentication tools
 ------------------------
 
+- install-ssh-agent-auth
+    Install and configure libpam-ssh-agent-auth for pubkey-only auth
+
 - monkeyproof
-	Install and configure monkeysphere, libpam-ssh-agent-auth for pubkey-only auth
+	As above, but also install and configure monkeysphere (deprecated).
 
 - make-pubkey-users
 	Bulk create users pubkey-auth only and optionally prepopulate authorized_keys
