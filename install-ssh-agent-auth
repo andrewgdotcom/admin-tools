@@ -143,7 +143,9 @@ EOF
 
 elif [[ $YUM ]]; then
 
-  yum -y --setopt=skip_missing_names_on_install=False install pam_ssh_agent_auth
+  if ! rpm -q pam_ssh_agent_auth ; then
+    yum -y --setopt=skip_missing_names_on_install=False install pam_ssh_agent_auth
+  fi
   if ! grep -q pam_ssh_agent_auth.so /etc/pam.d/system-auth; then
     cat <<EOF >/etc/pam.d/system-auth-ssh-agent
 auth       sufficient    pam_ssh_agent_auth.so file=/etc/security/authorized_keys/%u
