@@ -393,11 +393,13 @@ if [[ "${REMOTE_HOST:-}" ]]; then
 		# This is probably due to a restricted shell - try a stupider method
 		# NB this is racy AF. Make sure you have a way to get back in (e.g. password)
 		# TODO: try using sshfs?
+        # use awk 1 instead of cat to normalize line endings
 		TEMPFILE=$(mktemp)
 		scp "${REMOTE_USER}@${REMOTE_HOST}:.ssh/authorized_keys" "$TEMPFILE"
-		cat "${SSH_KEYFILE}.pub" >> "$TEMPFILE"
-		scp "$TEMPFILE" "${REMOTE_USER}@${REMOTE_HOST}:.ssh/authorized_keys"
-		rm "$TEMPFILE"
+        awk 1 "$TEMPFILE" > "${TEMPFILE}.out"
+		awk 1 "${SSH_KEYFILE}.pub" >> "${TEMPFILE}.out"
+		scp "${TEMPFILE}.out" "${REMOTE_USER}@${REMOTE_HOST}:.ssh/authorized_keys"
+		rm "$TEMPFILE" "${TEMPFILE}.out"
 	fi
 
 	# Now make sure root uses the dedicated key for this connection

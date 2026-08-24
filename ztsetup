@@ -98,10 +98,14 @@ done
 
 # and add some useful name resolutions
 if [[ -f /etc/zthosts ]]; then
-	cat /etc/zthosts >> /etc/hosts
+  echo >> /etc/hosts
+  # use awk 1 instead of cat to normalize line endings
+	awk 1 /etc/zthosts >> /etc/hosts
 fi
 if [[ -f ~/.zthosts ]]; then
-	cat ~/.zthosts >> /etc/hosts
+  echo >> /etc/hosts
+	# use awk 1 instead of cat to normalize line endings
+  awk 1 ~/.zthosts >> /etc/hosts
 fi
 
 if [[ -n "${tempdir:-}" ]]; then

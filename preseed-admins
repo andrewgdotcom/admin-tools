@@ -30,6 +30,12 @@ if [[ -f ~/.preseed-admins ]]; then
 	. ~/.preseed-admins
 fi
 
+# use awk 1 instead of cat to normalize line endings
+TEMPFILE=/root/.ssh/authorized_keys.staging$$
+awk 1 /root.ssh/authorized_keys > "$TEMPFILE" || true
+chmod og= "$TEMPFILE"
+chown root:root "$TEMPFILE"
+
 IFS=$'\n' read -d '' -ra admin_users_a <<< "$ADMIN_USERS" || true
 for i in "${admin_users_a[@]}"; do
 	userid="${i%% *}"
@@ -44,5 +50,6 @@ for i in "${admin_users_a[@]}"; do
 		usermod --comment "${realname}" "$userid"
 	fi
 	usermod -aG ${SUDO} "$userid"
-	[[ ! -e "/etc/security/authorized_keys/$userid" ]] || cat "/etc/security/authorized_keys/$userid" >> /root/.ssh/authorized_keys
+	[[ ! -e "/etc/security/authorized_keys/$userid" ]] || awk 1 "/etc/security/authorized_keys/$userid" >> "$TEMPFILE"
 done
+mv "$TEMPFILE" /root/.ssh/authorized_keys

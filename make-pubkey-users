@@ -35,22 +35,26 @@ if [ -d /etc/security/authorized_keys ]; then
 	# Make sure we can't log in on console with empty passwords!
 	# *-ac are Redhat files; /var/lib/pam/* are Debian
 	for file in /etc/pam.d/password-auth-ac /etc/pam.d/system-auth-ac /usr/share/pam-configs/unix; do
-		if grep -s nullok $file; then
+		if grep -s nullok "$file"; then
 			# Debian uses nullok_secure, but it's still not good enough
-			perl -pi.bak -e 's/\s+nullok(_secure)?\s+/ /' $file
+			perl -pi.bak -e 's/\s+nullok(_secure)?\s+/ /' "$file"
 		fi
 	done
-	if [ -n $DEBIAN ]; then
+	if [ -n "$DEBIAN" ]; then
 		# Regenerate pam config from updated template
 		pam-auth-update --force
 	fi
 fi
 
 for user in $*; do
-	/usr/sbin/adduser --disabled-password --gecos "" $user
-	if [ -n $_PSAA ]; then
-		if [[ -f pubkeys/$user ]]; then
-			cat pubkeys/$user >> /etc/security/authorized_keys/$user
+	/usr/sbin/adduser --disabled-password --gecos "" "$user"
+	if [ -n "$_PSAA" ]; then
+		if [[ -f "pubkeys/$user" ]]; then
+			# use awk 1 instead of cat to normalize line endings
+			TEMPFILE=/etc/security/authorized_keys/$user.temp.$$
+			awk 1 "/etc/security/authorized_keys/$user" > "$TEMPFILE" || true
+			awk 1 "pubkeys/$user" >> "$TEMPFILE"
+			mv "$TEMPFILE" "/etc/security/authorized_keys/$user"
 			# If we are using monkeysphere, we need to update the live config
 			if [ -x /usr/sbin/monkeysphere-authentication ]; then
 				monkeysphere-authentication update-users
@@ -58,11 +62,17 @@ for user in $*; do
 		fi
 		# Now empty the user's password and expire it
 		for user in $*; do
-			/usr/sbin/usermod -p "" $user
-			/usr/bin/chage -d 0 $user
+			/usr/sbin/usermod -p "" "$user"
+			/usr/bin/chage -d 0 "$user"
 		done
 	else
-		cat pubkeys/$user >> /home/$user/.ssh/authorized_keys
+		# use awk 1 instead of cat to normalize line endings
+		TEMPFILE=/home/$user/.ssh/authorized_keys.temp.$$
+		awk 1 "/home/$user/.ssh/authorized_keys" > "$TEMPFILE" || true
+		chown "$user" "$TEMPFILE"
+		chmod og= "$TEMPFILE"
+		awk 1 pubkeys/$user >> "$TEMPFILE"
+		mv "$TEMPFILE" "/home/$user/.ssh/authorized_keys"
 	fi
-	/usr/sbin/usermod -aG $WHEEL $user
+	/usr/sbin/usermod -aG "$WHEEL" "$user"
 done

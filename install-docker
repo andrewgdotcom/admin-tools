@@ -108,7 +108,7 @@ COMMIT
 
 EOF
 
-    cat /etc/ufw/before.rules >> "/etc/ufw/before.rules.$now"
+    awk 1 /etc/ufw/before.rules >> "/etc/ufw/before.rules.$now"
     mv /etc/ufw/before.rules{,.bak}
     mv /etc/ufw/before.rules{."$now",}
 

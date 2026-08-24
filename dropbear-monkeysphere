@@ -34,7 +34,8 @@ ln -sf /var/lib/monkeysphere/authorized_keys/dropbear-initramfs /etc/dropbear-in
 echo "Adding the IDs of all users in group ${SUDO} to dropbear-initramfs user"
 if [[ -f /etc/monkeysphere/authorized_user_ids/root ]]; then
     # Add root first, use this to trash stale config
-    cat /etc/monkeysphere/authorized_user_ids/root > /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
+    # use awk 1 instead of cat to normalize line endings
+    awk 1 /etc/monkeysphere/authorized_user_ids/root > /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
 else
     echo > /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
 fi
@@ -42,8 +43,8 @@ chown dropbear-initramfs:root /etc/monkeysphere/authorized_user_ids/dropbear-ini
 
 IFS=, read -ra users <<< "$(getent group ${SUDO} | awk -F: '{print $4}')"
 for user in "${users[@]}"; do
-  if [[ -e /etc/monkeysphere/authorized_user_ids/$user ]]; then
-    cat /etc/monkeysphere/authorized_user_ids/$user >> /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
+  if [[ -e "/etc/monkeysphere/authorized_user_ids/$user" ]]; then
+    awk 1 "/etc/monkeysphere/authorized_user_ids/$user" >> /etc/monkeysphere/authorized_user_ids/dropbear-initramfs
   fi
 done
 
@@ -72,9 +73,9 @@ update-initramfs -u -k all
 
 # Populate monkeysphere-host database with dropbear's RSA key
 serverlist="$(hostname --fqdn -A | sed 's/ /\n/g' | sort -u)"
-if [[ $serverlist ]]; then
+if [[ "$serverlist" ]]; then
   for server in $serverlist; do
-    monkeysphere-host import-key /etc/dropbear-initramfs/dropbear_rsa_host_key ssh://${server}:${PORT}
+    monkeysphere-host import-key /etc/dropbear-initramfs/dropbear_rsa_host_key "ssh://${server}:${PORT}"
   done
 else
   echo "WARNING: no valid FQDNs found. Not populating monkeysphere-host DB"
