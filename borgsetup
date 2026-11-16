@@ -432,7 +432,7 @@ fi
 cat >> /usr/local/bin/borg-env <<EOF
 export BORG_REPO=\$($YQ -r .location.repositories[0] </etc/borgmatic/config.yaml)
 export BORG_PASSPHRASE=\$($YQ -r .storage.encryption_passphrase </etc/borgmatic/config.yaml)
-export BORG_REMOTE_PATH=\$($YQ -r .remote_path </etc/borgmatic/config.yaml)
+export BORG_REMOTE_PATH=\$($YQ -r .location.remote_path </etc/borgmatic/config.yaml)
 EOF
 
 # Dump our info to stdout where e.g. ansible can pick it up
