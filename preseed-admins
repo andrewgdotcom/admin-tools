@@ -32,7 +32,7 @@ fi
 
 # use awk 1 instead of cat to normalize line endings
 TEMPFILE=/root/.ssh/authorized_keys.staging$$
-awk 1 /root.ssh/authorized_keys > "$TEMPFILE" || true
+awk 1 /root/.ssh/authorized_keys > "$TEMPFILE" || true
 chmod og= "$TEMPFILE"
 chown root:root "$TEMPFILE"
 
